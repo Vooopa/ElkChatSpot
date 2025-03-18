@@ -1,7 +1,14 @@
-import { WebpageVisitor, UserStatus } from "@shared/schema";
 import { useState } from "react";
+import type { WebpageVisitor } from "@/../../shared/schema";
+import { UserStatus } from "@/../../shared/schema";
 import { formatDistanceToNow } from "date-fns";
-import { Users, User, UserRoundCheck, Clock, LinkIcon } from "lucide-react";
+import { User, Users, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface WebpageVisitorsListProps {
   visitors: WebpageVisitor[];
@@ -11,177 +18,148 @@ interface WebpageVisitorsListProps {
 }
 
 const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: WebpageVisitorsListProps) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [expandedVisitor, setExpandedVisitor] = useState<string | null>(null);
 
+  // Helper functions for status visualization
   const getStatusColor = (status: UserStatus) => {
     switch (status) {
       case UserStatus.ACTIVE:
-        return "text-green-500";
+        return "bg-green-500";
       case UserStatus.IDLE:
-        return "text-amber-500";
+        return "bg-yellow-500";
       case UserStatus.AWAY:
-        return "text-gray-400";
+        return "bg-gray-400";
       default:
-        return "text-gray-400";
+        return "bg-gray-300";
     }
   };
 
   const getStatusDot = (status: UserStatus) => {
-    const color = status === UserStatus.ACTIVE 
-      ? "bg-green-500" 
-      : status === UserStatus.IDLE 
-        ? "bg-amber-500" 
-        : "bg-gray-400";
-    
-    return <div className={`w-2 h-2 ${color} rounded-full mr-2`} />;
+    return <div className={`w-2 h-2 rounded-full ${getStatusColor(status)}`}></div>;
   };
 
-  const getInitial = (nickname: string) => {
-    return nickname.charAt(0).toUpperCase();
-  };
-
-  const formatLastActivity = (timestamp: string) => {
-    try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
-    } catch (e) {
-      return "recently";
-    }
-  };
-
-  const toggleStatus = () => {
-    // Cycle between statuses: ACTIVE -> IDLE -> AWAY -> ACTIVE
-    const currentVisitor = visitors.find(v => v.nickname === currentUser);
-    if (!currentVisitor) return;
-    
-    const currentStatus = currentVisitor.status;
-    let newStatus: UserStatus;
-    
-    switch (currentStatus) {
-      case UserStatus.ACTIVE:
-        newStatus = UserStatus.IDLE;
-        break;
-      case UserStatus.IDLE:
-        newStatus = UserStatus.AWAY;
-        break;
-      default:
-        newStatus = UserStatus.ACTIVE;
-    }
-    
-    onSetStatus(newStatus);
-  };
-
-  const copyUrlToClipboard = () => {
-    if (!url) return;
-    
-    navigator.clipboard.writeText(url).then(
-      () => {
-        // Show a success toast or notification
-        console.log("URL copied to clipboard");
-      },
-      (err) => {
-        // Show an error toast or notification
-        console.error("Could not copy URL: ", err);
+  const toggleUserStatus = (status: UserStatus) => {
+    if (onSetStatus) {
+      let newStatus: UserStatus;
+      switch (status) {
+        case UserStatus.ACTIVE:
+          newStatus = UserStatus.IDLE;
+          break;
+        case UserStatus.IDLE:
+          newStatus = UserStatus.AWAY;
+          break;
+        case UserStatus.AWAY:
+          newStatus = UserStatus.ACTIVE;
+          break;
+        default:
+          newStatus = UserStatus.ACTIVE;
       }
-    );
+      onSetStatus(newStatus);
+    }
   };
+
+  // Format domain name from URL
+  const getDomainFromUrl = (urlString: string) => {
+    try {
+      const url = new URL(urlString);
+      return url.hostname;
+    } catch {
+      return urlString;
+    }
+  };
+
+  const domain = getDomainFromUrl(url);
 
   return (
-    <div className={`sidebar bg-gray-50 border-l border-gray-200 transition-all ${isExpanded ? 'w-72' : 'w-12'}`}>
-      <div className="h-full flex flex-col">
-        <div className="border-b border-gray-200 p-3 flex items-center justify-between">
-          <div className={`flex items-center ${!isExpanded && 'hidden'}`}>
-            <Users className="h-4 w-4 text-gray-500 mr-2" />
-            <span className="text-sm font-medium">Active Visitors</span>
-          </div>
-          <button 
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 rounded-md hover:bg-gray-200 text-gray-500"
-          >
-            {isExpanded ? (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m15 6-6 6 6 6" />
-              </svg>
-            ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            )}
-          </button>
-        </div>
-      
-        <div className={`flex-1 overflow-y-auto p-3 ${!isExpanded && 'hidden'}`}>
-          {visitors.length === 0 ? (
-            <div className="text-center text-gray-500 text-sm p-4">
-              No active visitors
-            </div>
-          ) : (
-            <ul className="space-y-2">
-              {visitors.map((visitor) => (
-                <li 
-                  key={visitor.socketId}
-                  className={`flex items-start p-2 rounded-md ${visitor.nickname === currentUser ? 'bg-blue-50' : 'hover:bg-gray-100'}`}
-                >
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center mr-3">
-                    {getInitial(visitor.nickname)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {visitor.nickname} {visitor.nickname === currentUser && '(you)'}
-                      </p>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500 mt-1">
-                      {getStatusDot(visitor.status)}
-                      <span className={getStatusColor(visitor.status)}>
-                        {visitor.status.charAt(0).toUpperCase() + visitor.status.slice(1)}
-                      </span>
-                    </div>
-                    <div className="flex items-center text-xs text-gray-500 mt-1">
-                      <Clock className="w-3 h-3 mr-1" />
-                      <span>Active {formatLastActivity(visitor.lastActivity)}</span>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+    <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col">
+      <div className="p-4 bg-gray-50 border-b flex justify-between items-center">
+        <div>
+          <h3 className="font-medium text-gray-800 flex items-center">
+            <Users className="h-4 w-4 mr-2" />
+            Visitors on <span className="font-semibold ml-1">{domain}</span>
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">
+            {visitors.length} {visitors.length === 1 ? "person" : "people"} browsing
+          </p>
         </div>
         
-        {isExpanded && (
-          <div className="border-t border-gray-200 p-3 space-y-2">
-            <div className="flex justify-between items-center">
-              <div className="text-xs text-gray-500">Your Status:</div>
-              <button 
-                onClick={toggleStatus}
-                className="flex items-center text-xs px-2 py-1 rounded-full border border-gray-200 hover:bg-gray-100"
-              >
-                {getStatusDot(visitors.find(v => v.nickname === currentUser)?.status || UserStatus.ACTIVE)}
-                <span>
-                  {visitors.find(v => v.nickname === currentUser)?.status || UserStatus.ACTIVE}
-                </span>
-              </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger className="flex items-center text-sm text-gray-600 hover:text-gray-900 focus:outline-none">
+            <div className="flex items-center">
+              <div className={`w-2 h-2 rounded-full mr-1 ${getStatusColor(
+                visitors.find(v => v.socketId === currentUser)?.status || UserStatus.ACTIVE
+              )}`}></div>
+              <span>Status</span>
             </div>
-            
-            <div className="flex justify-between items-center">
-              <div className="text-xs text-gray-500">Share Page:</div>
-              <button 
-                onClick={copyUrlToClipboard}
-                className="flex items-center text-xs px-2 py-1 rounded-full border border-gray-200 hover:bg-gray-100"
-              >
-                <LinkIcon className="w-3 h-3 mr-1" />
-                <span>Copy URL</span>
-              </button>
-            </div>
-            
-            <div className="text-xs text-gray-500 pt-2 border-t border-gray-100">
-              <div>Total visitors: {visitors.length}</div>
-              <div className="mt-1">
-                <UserRoundCheck className="w-3 h-3 inline mr-1 text-green-500" />
-                <span>{visitors.filter(v => v.status === UserStatus.ACTIVE).length} active</span>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => onSetStatus(UserStatus.ACTIVE)} className="flex items-center">
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+              Active
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onSetStatus(UserStatus.IDLE)} className="flex items-center">
+              <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></div>
+              Idle
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onSetStatus(UserStatus.AWAY)} className="flex items-center">
+              <div className="w-2 h-2 rounded-full bg-gray-400 mr-2"></div>
+              Away
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="overflow-y-auto flex-1 p-2">
+        <ul className="divide-y divide-gray-100">
+          {visitors.map((visitor) => (
+            <li 
+              key={visitor.socketId} 
+              className={`p-2 hover:bg-gray-50 rounded-md transition-colors ${
+                visitor.socketId === currentUser ? "bg-blue-50" : ""
+              }`}
+              onClick={() => setExpandedVisitor(
+                expandedVisitor === visitor.socketId ? null : visitor.socketId
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="relative">
+                    <div className="w-8 h-8 bg-gradient-to-r from-blue-100 to-blue-200 rounded-full flex items-center justify-center text-blue-600">
+                      <User className="h-4 w-4" />
+                    </div>
+                    <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ${getStatusColor(visitor.status)}`}></div>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm font-medium text-gray-700 flex items-center">
+                      {visitor.nickname}
+                      {visitor.socketId === currentUser && (
+                        <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center text-sm text-gray-500">
+                  <Clock className="h-3 w-3 mr-1" />
+                  <span className="text-xs">{formatDistanceToNow(new Date(visitor.joinedAt), { addSuffix: true })}</span>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
+              
+              {expandedVisitor === visitor.socketId && (
+                <div className="mt-2 pl-11 text-xs text-gray-500 space-y-1">
+                  <p>Joined: {new Date(visitor.joinedAt).toLocaleString()}</p>
+                  <p>Last activity: {formatDistanceToNow(new Date(visitor.lastActivity), { addSuffix: true })}</p>
+                  <p className="flex items-center">
+                    Status: 
+                    <span className="flex items-center ml-1">
+                      {getStatusDot(visitor.status)}
+                      <span className="ml-1 capitalize">{visitor.status}</span>
+                    </span>
+                  </p>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
