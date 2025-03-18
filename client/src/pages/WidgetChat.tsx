@@ -8,6 +8,7 @@ import MessageInput from "@/components/chat/MessageInput";
 import NicknameModal from "@/components/chat/NicknameModal";
 import { cn } from "@/lib/utils";
 import { normalizeUrl } from "@shared/schema";
+import "../widget/widget.css";
 
 /**
  * WidgetChat - A lightweight chat component designed to be embedded in an iframe

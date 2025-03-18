@@ -1,11 +1,42 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { Server as SocketIOServer } from "socket.io";
 import { Message, MessageType, UserStatus, normalizeUrl } from "@shared/schema";
+import path from "path";
+import fs from "fs";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
+  
+  // Add route to serve the widget script
+  app.get('/widget/chat-widget.js', (req: Request, res: Response) => {
+    // Read embed.ts and convert it to a standalone JavaScript file
+    try {
+      const embedFilePath = path.resolve(__dirname, '../client/src/widget/embed.ts');
+      const widgetEntryPath = path.resolve(__dirname, '../client/src/widget/widget-entry.ts');
+      
+      // Read both files and combine them
+      const embedCode = fs.readFileSync(embedFilePath, 'utf8');
+      const entryCode = fs.readFileSync(widgetEntryPath, 'utf8');
+      
+      // Generate a JavaScript bundle by combining the files
+      // For a development scenario, we'll just serve them directly
+      const combinedCode = `
+/* Chat Widget JavaScript Bundle */
+${embedCode}
+
+/* Widget Entry Point */
+${entryCode}
+      `;
+      
+      res.type('application/javascript');
+      res.send(combinedCode);
+    } catch (error) {
+      console.error('Error serving widget script:', error);
+      res.status(500).send('Error generating widget script');
+    }
+  });
 
   // Set up Socket.IO with path to avoid conflicts with Vite's HMR websocket
   const io = new SocketIOServer(httpServer, {
