@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { getSocket, initializeSocket } from "@/lib/socket";
-import type { Message, WebpageVisitor } from "../../../shared/schema";
-import { UserStatus, normalizeUrl, MessageType } from "../../../shared/schema";
-import WebpageVisitorsList from "../components/chat/WebpageVisitorsList";
-import WebpageUrlInput from "../components/chat/WebpageUrlInput";
-import NicknameModal from "../components/chat/NicknameModal";
-import MessageInput from "../components/chat/MessageInput";
-import MessageArea from "../components/chat/MessageArea";
-import Header from "../components/chat/Header";
+import type { Message, WebpageVisitor } from "@shared/schema";
+import { UserStatus, normalizeUrl, MessageType } from "@shared/schema";
+import WebpageVisitorsList from "@/components/chat/WebpageVisitorsList";
+import WebpageUrlInput from "@/components/chat/WebpageUrlInput";
+import NicknameModal from "@/components/chat/NicknameModal";
+import MessageInput from "@/components/chat/MessageInput";
+import MessageArea from "@/components/chat/MessageArea";
+import Header from "@/components/chat/Header";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
@@ -55,7 +55,10 @@ const WebpageRoom = () => {
     
     socket.on("connect", () => {
       setIsConnected(true);
-      setCurrentUser(socket.id);
+      
+      if (socket.id) {
+        setCurrentUser(socket.id);
+      }
       
       // Join webpage-specific room
       socket.emit("webpage:join", {
@@ -101,7 +104,7 @@ const WebpageRoom = () => {
       const message: Message = {
         roomId,
         text,
-        type: "user_message",
+        type: MessageType.USER_MESSAGE,
         nickname
       };
       socket.emit("chat:message", message);

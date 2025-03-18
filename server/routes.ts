@@ -131,13 +131,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Handle user status change on webpage
-    socket.on("webpage:status", ({ status }) => {
+    socket.on("webpage:setStatus", ({ roomId, status }) => {
       if (currentRoom && isWebpageVisitor && Object.values(UserStatus).includes(status)) {
         storage.updateWebpageVisitorStatus(currentRoom, socket.id, status);
         
         // Broadcast updated user status to everyone in the room
         const visitors = storage.getWebpageVisitors(currentRoom);
-        io.to(currentRoom).emit("webpage:visitor_update", Array.from(visitors.values()));
+        io.to(currentRoom).emit("webpage:visitors", Array.from(visitors.values()));
       }
     });
 
