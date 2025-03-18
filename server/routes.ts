@@ -105,21 +105,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Emit visitor joined event to all clients in the room
-      io.to(roomId).emit("webpage:visitor_joined", joinMessage);
+      io.to(roomId).emit("visitor:joined", joinMessage);
       
       // Send current visitor count
-      io.to(roomId).emit("webpage:visitor_count", visitors.size);
+      io.to(roomId).emit("webpage:userCount", visitors.size);
       
       // Send list of all current visitors to the newly joined user
       socket.emit("webpage:visitors", Array.from(visitors.values()));
       
       // Send room details including the original URL
       const room = storage.getRoom(roomId);
-      socket.emit("webpage:room_info", {
+      socket.emit("webpage:room", {
         roomId,
         url: room?.url || url,
         title: room?.title || pageTitle || "",
         visitorCount: visitors.size
+      });
+      
+      // Send title to the client
+      socket.emit("webpage:title", {
+        title: room?.title || pageTitle || ""
       });
     });
     
@@ -131,7 +136,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     // Handle user status change on webpage
-    socket.on("webpage:setStatus", ({ roomId, status }) => {
+    socket.on("webpage:updateStatus", ({ roomId, status }) => {
       if (currentRoom && isWebpageVisitor && Object.values(UserStatus).includes(status)) {
         storage.updateWebpageVisitorStatus(currentRoom, socket.id, status);
         
@@ -188,10 +193,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         
         // Emit visitor left event
-        io.to(roomId).emit("webpage:visitor_left", leaveMessage);
+        io.to(roomId).emit("visitor:left", leaveMessage);
         
         // Update visitor count
-        io.to(roomId).emit("webpage:visitor_count", visitors.size);
+        io.to(roomId).emit("webpage:userCount", visitors.size);
       } else {
         // Handle regular chat user leaving
         storage.removeUserFromRoom(roomId, socket.id);
