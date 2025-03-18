@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import ChatRoom from "@/pages/ChatRoom";
 import WebpageRoom from "@/pages/WebpageRoom";
 import WidgetChat from "@/pages/WidgetChat";
+import EmbedCode from "@/pages/EmbedCode";
 import Home from "@/pages/Home";
 
 function Router() {
@@ -16,8 +17,9 @@ function Router() {
       <Route path="/chat/:roomId" component={ChatRoom} />
       <Route path="/webpage" component={WebpageRoom} />
       <Route path="/webpage/:url*" component={WebpageRoom} />
-      <Route path="/widget/chat" component={WidgetChat} />
-      <Route path="/widget/chat/:url*" component={WidgetChat} />
+      <Route path="/widget" component={WidgetChat} />
+      <Route path="/widget/:url*" component={WidgetChat} />
+      <Route path="/embed-code" component={EmbedCode} />
       <Route component={NotFound} />
     </Switch>
   );

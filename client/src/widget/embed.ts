@@ -5,7 +5,8 @@
  * to provide real-time chat functionality specific to the current page URL.
  */
 
-interface ChatWidgetConfig {
+// Export the class to make it available to widget-entry.ts
+export interface ChatWidgetConfig {
   position?: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   title?: string;
   initiallyOpen?: boolean;
@@ -14,7 +15,7 @@ interface ChatWidgetConfig {
   host?: string;
 }
 
-class ChatWidget {
+export class ChatWidget {
   private config: ChatWidgetConfig;
   private container: HTMLElement | null = null;
   private iframe: HTMLIFrameElement | null = null;
@@ -178,7 +179,7 @@ class ChatWidget {
   }
 
   toggle(): void {
-    const iframeContainer = this.container?.querySelector('div:nth-child(2)');
+    const iframeContainer = this.container?.querySelector('div:nth-child(2)') as HTMLElement;
     if (!iframeContainer) return;
     
     this.isOpen = !this.isOpen;
@@ -186,7 +187,7 @@ class ChatWidget {
   }
 
   open(): void {
-    const iframeContainer = this.container?.querySelector('div:nth-child(2)');
+    const iframeContainer = this.container?.querySelector('div:nth-child(2)') as HTMLElement;
     if (!iframeContainer) return;
     
     this.isOpen = true;
@@ -194,7 +195,7 @@ class ChatWidget {
   }
 
   close(): void {
-    const iframeContainer = this.container?.querySelector('div:nth-child(2)');
+    const iframeContainer = this.container?.querySelector('div:nth-child(2)') as HTMLElement;
     if (!iframeContainer) return;
     
     this.isOpen = false;
