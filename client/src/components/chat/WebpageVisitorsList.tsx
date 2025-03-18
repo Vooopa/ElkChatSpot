@@ -1,6 +1,6 @@
 import { useState } from "react";
-import type { WebpageVisitor } from "@/../../shared/schema";
-import { UserStatus } from "@/../../shared/schema";
+import type { WebpageVisitor } from "@shared/schema";
+import { UserStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
 import { User, Users, Clock } from "lucide-react";
 import {
