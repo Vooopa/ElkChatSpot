@@ -1,144 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat Widget Demo</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-    }
-    
-    h1 {
-      color: #4f46e5;
-      margin-bottom: 30px;
-    }
-    
-    h2 {
-      margin-top: 40px;
-      color: #4338ca;
-    }
-    
-    pre {
-      background-color: #f5f5f5;
-      border-radius: 6px;
-      padding: 16px;
-      overflow: auto;
-      font-size: 14px;
-    }
-    
-    code {
-      font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
-    }
-    
-    .features {
-      margin-top: 40px;
-    }
-    
-    .features ul {
-      padding-left: 20px;
-    }
-    
-    .features li {
-      margin-bottom: 8px;
-    }
-    
-    .cta {
-      margin-top: 50px;
-      padding: 20px;
-      background-color: #f9fafb;
-      border-radius: 8px;
-      text-align: center;
-    }
-    
-    .footer {
-      margin-top: 60px;
-      padding-top: 20px;
-      border-top: 1px solid #eaeaea;
-      text-align: center;
-      font-size: 14px;
-      color: #666;
-    }
-  </style>
-  
-  <!-- Include the chat widget script -->
-  <script src="/widget/chat-widget.js" data-chat-widget-auto="true" data-chat-widget-position="bottom-right"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Widget Demo Page</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin: 40px 0;
+        }
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #4f46e5, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            font-size: 1.2rem;
+            color: #4b5563;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 40px;
+            margin: 40px 0;
+        }
+        .feature-list {
+            background-color: #f9fafb;
+            border-radius: 10px;
+            padding: 30px;
+        }
+        .feature-list h2 {
+            color: #4f46e5;
+            margin-top: 0;
+        }
+        .feature-list ul {
+            padding-left: 20px;
+        }
+        .feature-list li {
+            margin-bottom: 15px;
+        }
+        .implementation-guide {
+            padding: 30px;
+            background-color: #f3f4f6;
+            border-radius: 10px;
+        }
+        .implementation-guide h2 {
+            color: #4f46e5;
+            margin-top: 0;
+        }
+        code {
+            background-color: #e5e7eb;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        pre {
+            background-color: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        .sidebar {
+            padding: 20px;
+            background-color: #f0f4f8;
+            border-radius: 10px;
+        }
+        .cta {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #4338ca;
+        }
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>📱 Real-Time Chat Widget Demo</h1>
-  
-  <p>This page demonstrates how easy it is to embed a real-time chat widget on your website. The widget allows visitors to chat with each other, providing a community experience to your site.</p>
-  
-  <h2>How to Embed the Widget</h2>
-  
-  <p>Simply add the following script tag to your HTML:</p>
-  
-  <pre><code>&lt;script 
-  src="https://your-website.com/widget/chat-widget.js" 
+    <header>
+        <h1>Chat Widget Demo Page</h1>
+        <p class="subtitle">See how the chat widget works on a sample webpage</p>
+    </header>
+
+    <div class="content">
+        <div class="main-content">
+            <div class="feature-list">
+                <h2>Features of Our Chat Widget</h2>
+                <ul>
+                    <li><strong>URL-Based Chat Rooms:</strong> Automatically creates chat rooms based on the current URL, connecting users browsing the same content.</li>
+                    <li><strong>Real-Time Messaging:</strong> Instant delivery of messages with no page refreshes required.</li>
+                    <li><strong>User Presence:</strong> See who else is viewing the same page in real-time.</li>
+                    <li><strong>Customizable:</strong> Easily adjust the widget's appearance, position, and behavior to match your site's design.</li>
+                    <li><strong>Lightweight:</strong> Minimal impact on your page load times and performance.</li>
+                    <li><strong>Easy Integration:</strong> Simple script tag or JavaScript API for adding to your site.</li>
+                </ul>
+            </div>
+
+            <div class="implementation-guide">
+                <h2>How to Implement on Your Site</h2>
+                <p>Adding the chat widget to your website is easy. Just add the following script tag to your HTML:</p>
+                <pre><code>&lt;script 
+  src="https://your-domain.com/widget/chat-widget.js" 
   data-chat-widget-auto="true" 
   data-chat-widget-position="bottom-right"
-&gt;&lt;/script&gt;</code></pre>
-  
-  <h2>Configuration Options</h2>
-  
-  <p>You can customize the widget using data attributes:</p>
-  
-  <pre><code>&lt;script 
-  src="https://your-website.com/widget/chat-widget.js" 
-  data-chat-widget-auto="true" 
-  data-chat-widget-position="bottom-right"
-  data-chat-widget-title="Community Chat"
+  data-chat-widget-title="Chat"
   data-chat-widget-open="false"
   data-chat-widget-width="350px"
   data-chat-widget-height="500px"
 &gt;&lt;/script&gt;</code></pre>
-  
-  <h2>Programmatic Usage</h2>
-  
-  <p>You can also instantiate and control the widget programmatically:</p>
-  
-  <pre><code>// Initialize the widget
+                <p>Or use the JavaScript API for more control:</p>
+                <pre><code>// Initialize the chat widget
 const chatWidget = new ChatWidget({
   position: 'bottom-right',
-  title: 'Community Chat',
+  title: 'Chat',
   initiallyOpen: false,
   width: '350px',
   height: '500px'
 });
 
-// Open the widget
-chatWidget.open();
+// You can programmatically control the widget
+// chatWidget.open();
+// chatWidget.close();
+// chatWidget.toggle();</code></pre>
+            </div>
+        </div>
 
-// Close the widget
-chatWidget.close();
+        <div class="sidebar">
+            <h2>Why Add Chat to Your Website?</h2>
+            <p>Adding a chat widget to your website can:</p>
+            <ul>
+                <li>Increase user engagement and time spent on page</li>
+                <li>Create a sense of community around your content</li>
+                <li>Provide real-time interaction between users with shared interests</li>
+                <li>Gather valuable feedback and insights from your visitors</li>
+                <li>Differentiate your website from competitors</li>
+            </ul>
 
-// Toggle the widget
-chatWidget.toggle();</code></pre>
-  
-  <div class="features">
-    <h2>Features</h2>
-    <ul>
-      <li>Real-time chat between visitors on the same page</li>
-      <li>Customizable appearance and position</li>
-      <li>Lightweight with minimal impact on page load</li>
-      <li>Works across all modern browsers</li>
-      <li>Responsive design for mobile and desktop</li>
-      <li>Simple integration with just one script tag</li>
-    </ul>
-  </div>
-  
-  <div class="cta">
-    <h2>Try it now!</h2>
-    <p>Look for the chat button in the bottom-right corner of this page to start chatting with other visitors.</p>
-  </div>
-  
-  <div class="footer">
-    <p>© 2025 WebChat Widget. All rights reserved.</p>
-  </div>
+            <div class="cta">
+                <a href="/embed-code" class="button">Get Your Embed Code</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Widget Embed Code -->
+    <script src="/widget/chat-widget.js" data-chat-widget-auto="true" data-chat-widget-position="bottom-right"></script>
 </body>
 </html>
