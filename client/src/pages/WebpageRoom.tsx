@@ -71,7 +71,7 @@ const WebpageRoom = () => {
       setIsConnected(false);
     });
 
-    socket.on("webpage:roomId", (data: { roomId: string }) => {
+    socket.on("webpage:room_info", (data: { roomId: string, url: string, title: string }) => {
       setRoomId(data.roomId);
       // Update URL route with room ID
       setLocation(`/webpage/${encodeURIComponent(url)}`);
@@ -82,17 +82,17 @@ const WebpageRoom = () => {
     });
 
     socket.on("chat:message", onChatMessage);
-    socket.on("user:joined", onVisitorJoined);
-    socket.on("user:left", onVisitorLeft);
+    socket.on("webpage:visitor_joined", onVisitorJoined);
+    socket.on("webpage:visitor_left", onVisitorLeft);
 
     return () => {
       socket.off("connect");
       socket.off("disconnect");
-      socket.off("webpage:roomId");
+      socket.off("webpage:room_info");
       socket.off("webpage:visitors");
       socket.off("chat:message");
-      socket.off("user:joined");
-      socket.off("user:left");
+      socket.off("webpage:visitor_joined");
+      socket.off("webpage:visitor_left");
     };
   };
 
