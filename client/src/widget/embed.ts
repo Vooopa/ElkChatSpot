@@ -26,7 +26,7 @@ class ChatWidget {
     // Set default configuration
     this.config = {
       position: config.position || 'bottom-right',
-      title: config.title || 'Chat about this page',
+      title: config.title || 'Chat',
       initiallyOpen: config.initiallyOpen || false,
       width: config.width || '350px',
       height: config.height || '500px',
@@ -134,6 +134,20 @@ class ChatWidget {
     // Append to body
     document.body.appendChild(button);
     document.body.appendChild(this.container);
+
+    // Set up message passing for page title
+    window.addEventListener('message', (event) => {
+      if (event.data?.type === 'REQUEST_PAGE_TITLE') {
+        // Send page title to iframe
+        const iframe = document.getElementById('chat-widget-container')?.querySelector('iframe');
+        if (iframe) {
+          iframe.contentWindow?.postMessage({
+            type: 'PAGE_TITLE',
+            title: document.title
+          }, '*');
+        }
+      }
+    });
   }
 
   toggle(): void {
@@ -157,18 +171,5 @@ class ChatWidget {
     }
   }
 }
-
-// Initialize widget when script loads
-window.addEventListener('DOMContentLoaded', () => {
-  // @ts-ignore - Add to window for external access
-  window.ChatWidget = ChatWidget;
-  
-  // Auto-initialize if data attribute is present
-  const autoInit = document.querySelector('[data-chat-widget-auto="true"]');
-  if (autoInit) {
-    // @ts-ignore - Initialize widget
-    new ChatWidget();
-  }
-});
 
 export default ChatWidget;
