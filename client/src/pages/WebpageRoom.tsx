@@ -38,22 +38,16 @@ const WebpageRoom = () => {
 
   // Set up socket connection when the component loads
   useEffect(() => {
-    // Create a new socket with connection options
-    const newSocket = io(window.location.origin, {
-      path: "/api/socket.io",
-      transports: ['websocket', 'polling'],
-      reconnection: true,
-      reconnectionAttempts: 5
-    });
+    // Create a new socket with default options - same as SimpleChatDemo
+    const newSocket = io();
     
     // Set up event listeners for connection status
     newSocket.on("connect", () => {
       console.log("Webpage socket connected with ID:", newSocket.id);
       setIsConnected(true);
       
-      if (newSocket.id) {
-        setCurrentUser(newSocket.id);
-      }
+      // Don't set currentUser to socket.id here
+      // The currentUser should be the nickname which will be set when handleSetNickname is called
     });
 
     newSocket.on("disconnect", () => {
@@ -426,7 +420,7 @@ const WebpageRoom = () => {
       <div className="flex-1 flex overflow-hidden">
         <div className="w-3/4 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4">
-            <MessageArea messages={messages} currentUser={nickname} />
+            <MessageArea messages={messages} currentUser={nickname || currentUser} />
           </div>
           <div className="flex-none p-4 border-t bg-white">
             <MessageInput onSendMessage={handleSendMessage} />
