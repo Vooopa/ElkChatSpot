@@ -353,6 +353,10 @@ const WebpageRoom = () => {
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
+    // Ignore broadcast messages if we already received a direct one
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
       // Check if we already have this message to avoid duplicates
@@ -367,8 +371,8 @@ const WebpageRoom = () => {
         setMessages(prev => [...prev, message]);
       }
       
-      // Request updated visitor list
-      if (socket && isConnected) {
+      // Request updated visitor list (only for direct messages to avoid multiple requests)
+      if (socket && isConnected && !isBroadcast) {
         console.log("Requesting latest visitor list after user left");
         socket.emit("webpage:getVisitors", { roomId });
       }
@@ -377,7 +381,11 @@ const WebpageRoom = () => {
 
   const onChatMessage = (message: Message) => {
     console.log("Chat message received:", message);
-    // Handle messages for the current room, even if they're broadcast globally
+    // Ignore broadcast messages if they're duplicates
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
+    // Handle messages for the current room only
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
       // Check if we already have this message to avoid duplicates
       const isDuplicate = messages.some(
@@ -386,45 +394,78 @@ const WebpageRoom = () => {
              m.text === message.text
       );
       
-      if (!isDuplicate) {
-        setMessages(prev => [...prev, message]);
+      // Only add message if not duplicate, or if it's the direct (non-broadcast) version
+      if (!isDuplicate || !isBroadcast) {
+        // If we get a direct message after already adding a broadcast, replace it
+        if (!isBroadcast && isDuplicate) {
+          // Replace existing message
+          setMessages(prev => prev.map(m => 
+            (m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.text === message.text) ? message : m
+          ));
+        } else if (!isDuplicate) {
+          // Add new message
+          setMessages(prev => [...prev, message]);
+        }
       }
     }
   };
   
   const onPrivateMessage = (message: Message) => {
     console.log("Private message received:", message);
+    // Ignore broadcast messages if they're duplicates
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
     // Check for both exact and normalized room ID matches
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
-      // Check for duplicates
-      const isDuplicate = privateMessages.some(
-        m => m.timestamp === message.timestamp && 
-             m.nickname === message.nickname && 
-             m.text === message.text &&
-             m.recipient === message.recipient
-      );
-      
-      if (!isDuplicate) {
-        setPrivateMessages(prev => [...prev, message]);
-        // Also add to main message list if not a duplicate there
-        const isMessageDuplicate = messages.some(
+      // Only process messages relevant to this user (as sender or recipient)
+      if (message.nickname === nickname || message.recipient === nickname) {
+        // Check for duplicates
+        const isDuplicate = privateMessages.some(
           m => m.timestamp === message.timestamp && 
                m.nickname === message.nickname && 
                m.text === message.text &&
                m.recipient === message.recipient
         );
         
-        if (!isMessageDuplicate) {
-          setMessages(prev => [...prev, message]);
-        }
-        
-        // Show a toast if the message is from someone else
-        if (message.nickname !== nickname) {
-          toast({
-            title: `Private message from ${message.nickname}`,
-            description: message.text,
-            variant: "default"
-          });
+        // Only add message if not duplicate, or if it's the direct (non-broadcast) version
+        if (!isDuplicate || !isBroadcast) {
+          // If we get a direct message after already adding a broadcast, replace it
+          if (!isBroadcast && isDuplicate) {
+            // Replace existing message
+            setPrivateMessages(prev => prev.map(m => 
+              (m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.text === message.text &&
+               m.recipient === message.recipient) ? message : m
+            ));
+          } else if (!isDuplicate) {
+            // Add new message
+            setPrivateMessages(prev => [...prev, message]);
+          }
+          
+          // Also add to main message list if not a duplicate there
+          const isMessageDuplicate = messages.some(
+            m => m.timestamp === message.timestamp && 
+                 m.nickname === message.nickname && 
+                 m.text === message.text &&
+                 m.recipient === message.recipient
+          );
+          
+          if (!isMessageDuplicate) {
+            setMessages(prev => [...prev, message]);
+          }
+          
+          // Show a toast if the message is from someone else and it's a direct message
+          if (message.nickname !== nickname && !isBroadcast) {
+            toast({
+              title: `Private message from ${message.nickname}`,
+              description: message.text,
+              variant: "default"
+            });
+          }
         }
       }
     }
