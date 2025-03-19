@@ -4,6 +4,7 @@ import { z } from "zod";
 
 export enum MessageType {
   USER_MESSAGE = "user_message",
+  PRIVATE_MESSAGE = "private_message",
   SYSTEM = "system",
   USER_JOINED = "user_joined",
   USER_LEFT = "user_left"
@@ -32,6 +33,8 @@ export interface Message {
   text: string;
   timestamp?: string;
   type: MessageType;
+  recipient?: string; // For private messages
+  senderSocketId?: string; // Sender's socket ID
 }
 
 export interface WebpageVisitor {
