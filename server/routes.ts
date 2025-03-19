@@ -132,29 +132,47 @@ ${entryCode}
       }
       
       // Create a room ID based on the normalized URL
-      const normalizedUrl = normalizeUrl(url);
-      let newRoomId = `url-${normalizedUrl}`;
-      
-      console.log(`Normalized URL: ${normalizedUrl}, Room ID: ${newRoomId}`);
-      
-      // Check if the nickname is already in use in this room
-      if (storage.isNicknameInUse(newRoomId, nickname)) {
-        console.log(`Nickname ${nickname} is already in use in room ${newRoomId}`);
-        // Notify user that the nickname is already taken
-        socket.emit("error:nickname", { 
-          message: "This nickname is already in use. Please choose another one."
+      let normalizedUrl, newRoomId;
+      try {
+        normalizedUrl = normalizeUrl(url);
+        newRoomId = `url-${normalizedUrl}`;
+        
+        console.log(`Normalized URL: ${normalizedUrl}, Room ID: ${newRoomId}`);
+        
+        // Check if the nickname is already in use in this room
+        if (storage.isNicknameInUse(newRoomId, nickname)) {
+          console.log(`Nickname ${nickname} is already in use in room ${newRoomId}`);
+          // Notify user that the nickname is already taken
+          socket.emit("error:nickname", { 
+            message: "This nickname is already in use. Please choose another one."
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Error normalizing URL or checking nickname:", error);
+        socket.emit("error:message", {
+          message: "An error occurred when joining the room. Please try again."
         });
         return;
       }
       
       // Add visitor to the webpage room
-      const addedRoomId = storage.addWebpageVisitor(url, socket.id, nickname);
-      
-      if (addedRoomId === null) {
-        console.log(`Failed to add visitor ${nickname} to room for ${url}`);
-        // This shouldn't happen since we checked above, but just to be safe
-        socket.emit("error:nickname", { 
-          message: "This nickname is already in use. Please choose another one."
+      let addedRoomId;
+      try {
+        addedRoomId = storage.addWebpageVisitor(url, socket.id, nickname);
+        
+        if (addedRoomId === null) {
+          console.log(`Failed to add visitor ${nickname} to room for ${url}`);
+          // This shouldn't happen since we checked above, but just to be safe
+          socket.emit("error:nickname", { 
+            message: "This nickname is already in use. Please choose another one."
+          });
+          return;
+        }
+      } catch (error) {
+        console.error(`Error adding visitor ${nickname} to room for ${url}:`, error);
+        socket.emit("error:message", {
+          message: "An error occurred when joining the chat. Please try again."
         });
         return;
       }
