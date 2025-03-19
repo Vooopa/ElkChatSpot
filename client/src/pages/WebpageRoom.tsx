@@ -204,7 +204,7 @@ const WebpageRoom = () => {
       socket.off("user:joined");
       socket.off("user:left");
     };
-  }, [socket, url, toast, setLocation]);
+  }, [socket, url, toast, setLocation, roomId, messages, privateMessages, nickname]);
 
   const handleUrlSubmit = (submittedUrl: string) => {
     setUrl(submittedUrl);
