@@ -325,6 +325,10 @@ const WebpageRoom = () => {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
+    // Ignore broadcast messages if we already received a direct one
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
       // Check if we already have this message to avoid duplicates
@@ -339,8 +343,8 @@ const WebpageRoom = () => {
         setMessages(prev => [...prev, message]);
       }
       
-      // Request updated visitor list
-      if (socket && isConnected) {
+      // Request updated visitor list (only for direct messages to avoid multiple requests)
+      if (socket && isConnected && !isBroadcast) {
         console.log("Requesting latest visitor list after user joined");
         socket.emit("webpage:getVisitors", { roomId });
       }
