@@ -96,68 +96,64 @@ const WebpageRoom = () => {
     }
   }, [socket?.id]);
 
-  // Set up socket event listeners when socket or roomId changes
+  // Set up socket event listeners when socket changes
   useEffect(() => {
     if (!socket) return;
     
     console.log("Setting up webpage event listeners...");
     
-    // Error events
-    const handleNicknameError = (data: { message: string }) => {
-      console.error("Nickname error:", data.message);
-      setNicknameError(data.message);
+    // Create stable references to state setters to avoid dependency changes
+    // These closures will always use the latest state values when called
+    const updateNicknameError = (message: string) => {
+      console.error("Nickname error:", message);
+      setNicknameError(message);
       setShowNicknameModal(true);
     };
     
-    const handleMessageError = (data: { message: string }) => {
-      console.error("Message error:", data.message);
+    const showMessageError = (message: string) => {
+      console.error("Message error:", message);
       toast({
         title: "Message Error",
-        description: data.message,
+        description: message,
         variant: "destructive"
       });
     };
     
-    const handleRoomInfo = (data: { roomId: string, url: string, title: string }) => {
+    const updateRoomInfo = (data: { roomId: string, url: string, title: string }) => {
       console.log("Received room info:", data);
       setRoomId(data.roomId);
       // Update URL route with room ID
-      setLocation(`/webpage/${encodeURIComponent(url)}`);
+      setLocation(`/webpage/${encodeURIComponent(data.url)}`);
     };
     
-    const handleVisitorList = (roomVisitors: WebpageVisitor[]) => {
+    const updateVisitorList = (roomVisitors: WebpageVisitor[]) => {
       console.log("Received visitor list:", roomVisitors);
       setVisitors(roomVisitors);
-    };
-    
-    const handleUserCount = (count: number) => {
-      console.log(`Received user count: ${count}`);
     };
     
     // Register event listeners with debugging
     socket.on("error:nickname", (data) => {
       console.log("Received error:nickname event", data);
-      handleNicknameError(data);
+      updateNicknameError(data.message);
     });
     
     socket.on("error:message", (data) => {
       console.log("Received error:message event", data);
-      handleMessageError(data);
+      showMessageError(data.message);
     });
     
     socket.on("webpage:room", (data) => {
       console.log("Received webpage:room event", data);
-      handleRoomInfo(data);
+      updateRoomInfo(data);
     });
     
     socket.on("webpage:visitors", (data) => {
       console.log("Received webpage:visitors event", data);
-      handleVisitorList(data);
+      updateVisitorList(data);
     });
     
     socket.on("webpage:userCount", (count) => {
       console.log("Received webpage:userCount event", count);
-      handleUserCount(count);
     });
     
     socket.on("chat:message", (message) => {
@@ -208,7 +204,7 @@ const WebpageRoom = () => {
       socket.off("user:joined");
       socket.off("user:left");
     };
-  }, [socket, url, toast, setLocation]);
+  }, [socket]);
 
   const handleUrlSubmit = (submittedUrl: string) => {
     setUrl(submittedUrl);

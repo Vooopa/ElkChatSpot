@@ -32,63 +32,69 @@ const PrivateChatDialog = ({
 }: PrivateChatDialogProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  // Use a ref for chat history to avoid unnecessary re-renders
-  const chatHistoryRef = useRef<Map<string, Message[]>>(new Map());
+  const [chatHistory, setChatHistory] = useState<Map<string, Message[]>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Add a ref for tracking if we're already listening to private messages
-  const listeningRef = useRef<boolean>(false);
 
   // Load chat history when the dialog opens
   useEffect(() => {
     if (isOpen && recipientName) {
       // If we already have chat history with this user, use it
-      const history = chatHistoryRef.current;
-      if (history.has(recipientName)) {
-        setMessages(history.get(recipientName) || []);
+      if (chatHistory.has(recipientName)) {
+        setMessages(chatHistory.get(recipientName) || []);
       } else {
         // Otherwise start with an empty chat
         setMessages([]);
       }
     }
-  }, [isOpen, recipientName]);
+  }, [isOpen, recipientName, chatHistory]);
 
-  // Set up a single socket event listener for private messages
+  // Set up a single socket event listener for the entire application
   useEffect(() => {
-    if (!socket || listeningRef.current) return;
+    if (!socket) return;
     
-    listeningRef.current = true;
-    console.log("🔵 Setting up private message listener (once)");
+    console.log("🔵 Setting up private message listener with", {
+      currentUser,
+      recipientName
+    });
 
     function handlePrivateMessage(message: Message) {
-      // Use current values from props, not from closure
-      const current = currentUser;
-      const currentRecipient = recipientName;
-      
       console.log("🔵 Received private message in dialog:", message);
       
       // Determine if this message is between the current user and recipient
-      const isFromCurrentUser = message.nickname === current;
-      const isFromRecipient = message.nickname === currentRecipient;
-      const isToCurrentUser = message.recipient === current;
-      const isToRecipient = message.recipient === currentRecipient;
+      const isFromCurrentUser = message.nickname === currentUser;
+      const isFromRecipient = message.nickname === recipientName;
+      const isToCurrentUser = message.recipient === currentUser;
+      const isToRecipient = message.recipient === recipientName;
       
       const isRelevantMessage = 
         (isFromCurrentUser && isToRecipient) ||
         (isFromRecipient && isToCurrentUser);
       
+      console.log("🔵 Message relevance:", {
+        isFromCurrentUser,
+        isFromRecipient,
+        isToCurrentUser,
+        isToRecipient,
+        isRelevantMessage
+      });
+      
       if (isRelevantMessage) {
-        console.log("🔵 Adding message to conversation with", currentRecipient);
+        console.log("🔵 Adding message to conversation with", recipientName);
         
-        // Add to messages state if this dialog is open with this recipient
-        if (isOpen && currentRecipient === (isFromCurrentUser ? message.recipient : message.nickname)) {
-          setMessages(prevMessages => [...prevMessages, message]);
-        }
+        // Add to messages state
+        setMessages(prevMessages => [...prevMessages, message]);
         
         // Store in chat history
-        const otherUser = isFromCurrentUser ? message.recipient! : message.nickname!;
-        const history = chatHistoryRef.current;
-        const prevMessages = history.get(otherUser) || [];
-        history.set(otherUser, [...prevMessages, message]);
+        setChatHistory(prevHistory => {
+          const otherUser = isFromCurrentUser ? 
+            message.recipient! : message.nickname!;
+            
+          const prevMessages = prevHistory.get(otherUser) || [];
+          const newHistory = new Map(prevHistory);
+          newHistory.set(otherUser, [...prevMessages, message]);
+          
+          return newHistory;
+        });
       }
     }
 
@@ -97,9 +103,8 @@ const PrivateChatDialog = ({
     return () => {
       console.log("🔵 Removing private message listener");
       socket.off("chat:private", handlePrivateMessage);
-      listeningRef.current = false;
     };
-  }, [socket]);
+  }, [socket, currentUser, recipientName]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -111,9 +116,11 @@ const PrivateChatDialog = ({
   // Save messages to chat history when the dialog closes
   useEffect(() => {
     if (!isOpen && messages.length > 0 && recipientName) {
-      // Update the chat history directly in the ref
-      const history = chatHistoryRef.current;
-      history.set(recipientName, [...messages]);
+      setChatHistory(prev => {
+        const newHistory = new Map(prev);
+        newHistory.set(recipientName, [...messages]);
+        return newHistory;
+      });
     }
   }, [isOpen, messages, recipientName]);
 
