@@ -31,7 +31,6 @@ const WebpageRoom = () => {
   // User and page state
   const [nickname, setNickname] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [privateMessages, setPrivateMessages] = useState<Message[]>([]);
   const [visitors, setVisitors] = useState<WebpageVisitor[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [url, setUrl] = useState<string>("");
@@ -209,7 +208,7 @@ const WebpageRoom = () => {
       socket.off("user:joined");
       socket.off("user:left");
     };
-  }, [socket, url, toast, setLocation, roomId, messages, privateMessages, nickname]);
+  }, [socket, url, toast, setLocation, roomId, messages, nickname]);
 
   const handleUrlSubmit = (submittedUrl: string) => {
     setUrl(submittedUrl);
@@ -420,11 +419,7 @@ const WebpageRoom = () => {
   };
   
   const onPrivateMessage = (message: Message) => {
-    console.log("Private message received:", message);
-    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
-    const isBroadcast = message.isBroadcast;
-    // @ts-ignore
-    const isRoomBroadcast = message.roomBroadcast;
+    console.log("🟢 Main component received private message:", message);
     
     // Process only if:
     // 1. The message is for this room AND
@@ -432,46 +427,37 @@ const WebpageRoom = () => {
     if ((message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!))
         && (message.nickname === nickname || message.recipient === nickname)) {
       
-      // Check if we've already received this message
-      const isDuplicate = privateMessages.some(
-        m => m.timestamp === message.timestamp && 
-             m.nickname === message.nickname && 
-             m.text === message.text &&
-             m.recipient === message.recipient
-      );
+      // Important: We no longer store private messages in the main component
+      // The PrivateChatDialog component handles its own message storage
       
-      // Simplified message handling - only room broadcasts exist now
-      // We still check for duplicates to be safe
-      if (!isDuplicate) {
-        setPrivateMessages(prev => [...prev, message]);
+      // If the message is from someone else to this user, and the private chat dialog
+      // isn't already open with this sender, show a toast notification
+      if (message.nickname !== nickname && 
+          message.recipient === nickname && 
+          !(privateChatOpen && privateChatRecipient === message.nickname)) {
         
-        // Show a toast if this is a message from someone else to this user
-        // and only if the private chat isn't already open with this sender
-        if (message.nickname !== nickname && 
-            message.recipient === nickname && 
-            !(privateChatOpen && privateChatRecipient === message.nickname)) {
-          
-          toast({
-            title: `Private message from ${message.nickname}`,
-            description: message.text,
-            variant: "default",
-            action: (
-              <div 
-                className="cursor-pointer underline"
-                onClick={() => handleStartPrivateChat(message.nickname || "")}
-              >
-                Reply
-              </div>
-            )
-          });
-          
-          // Automatically open private chat with this user if it's not already open
-          if (!privateChatOpen) {
-            handleStartPrivateChat(message.nickname || "");
-          }
+        console.log("🟢 Showing private message notification from", message.nickname);
+        
+        // Show a notification toast with a reply button
+        toast({
+          title: `Private message from ${message.nickname}`,
+          description: message.text,
+          variant: "default",
+          action: (
+            <div 
+              className="cursor-pointer underline"
+              onClick={() => handleStartPrivateChat(message.nickname || "")}
+            >
+              Reply
+            </div>
+          )
+        });
+        
+        // Automatically open private chat with this user if no private chat is open
+        if (!privateChatOpen) {
+          console.log("🟢 Auto-opening private chat with", message.nickname);
+          handleStartPrivateChat(message.nickname || "");
         }
-      } else {
-        console.log("Skipping duplicate private message");
       }
     }
   };
