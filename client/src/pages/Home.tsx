@@ -32,9 +32,12 @@ const Home = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Real-time <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-indigo-600">Chat Platform</span>
           </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4">
             Connect with others in real-time through chat rooms or discuss any webpage with people viewing the same content.
           </p>
+          <div className="inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded-lg">
+            <Link href="/simple-demo">Try Simple Chat Demo</Link>
+          </div>
         </header>
 
         {/* URL input section */}
