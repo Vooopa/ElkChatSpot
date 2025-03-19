@@ -226,7 +226,7 @@ const WebpageRoom = () => {
     // Join webpage-specific room
     console.log(`Joining webpage with URL: ${url}, nickname: ${newNickname}`);
     socket.emit("webpage:join", {
-      url: normalizeUrl(url),
+      url: url, // Send the original URL, server will normalize it
       nickname: newNickname,
       pageTitle: `Chat about ${getDomainFromUrl(url)}`
     });
