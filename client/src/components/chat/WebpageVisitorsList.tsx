@@ -161,15 +161,20 @@ const WebpageVisitorsList = ({
                 <div className="flex items-center gap-2">
                   {visitor.nickname !== currentUser && (
                     <Button 
-                      variant="ghost" 
-                      size="icon"
-                      className={`h-7 w-7 relative ${visitor.unreadMessages ? 'animate-pulse' : ''}`}
+                      variant={visitor.unreadMessages ? 'destructive' : 'ghost'}
+                      size="sm"
+                      className={`relative px-2 py-1 ${visitor.unreadMessages ? 'animate-bounce bg-red-500 text-white' : ''}`}
                       title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}`}
                       onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                     >
-                      <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-blue-600' : 'text-blue-500'}`} />
+                      <div className="flex items-center gap-1">
+                        <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-white' : 'text-blue-500'}`} />
+                        <span className={visitor.unreadMessages ? 'font-bold' : 'hidden'}>
+                          {visitor.unreadMessages ? `${visitor.unreadMessages} new` : ''}
+                        </span>
+                      </div>
                       {visitor.unreadMessages && visitor.unreadMessages > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white animate-pulse">
                           {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
                         </span>
                       )}
