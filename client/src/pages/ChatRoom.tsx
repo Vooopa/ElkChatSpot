@@ -22,14 +22,27 @@ const ChatRoom = () => {
   const roomId = location === "/" ? "lobby" : location.substring(1);
 
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log("No socket instance available");
+      return;
+    }
+
+    console.log("Setting up socket listeners");
 
     const onConnect = () => {
+      console.log("Socket connected event fired");
       setIsConnected(true);
       setRoomInfo(`${window.location.host}${location}`);
+      
+      // If we already have a nickname, try to join the room
+      if (nickname) {
+        console.log(`Already have nickname (${nickname}), trying to join room ${roomId}`);
+        socket.emit("user:join", { roomId, nickname });
+      }
     };
 
     const onDisconnect = () => {
+      console.log("Socket disconnected");
       setIsConnected(false);
     };
 
@@ -106,17 +119,39 @@ const ChatRoom = () => {
       socket.off("error:nickname", onNicknameError);
       socket.off("error:message", onMessageError);
     };
-  }, [socket, location, nickname, toast]);
+  }, [socket, location, nickname, roomId, toast]);
 
   const handleSetNickname = (name: string) => {
     if (!name.trim()) return;
+    
+    console.log(`Attempting to join room: ${roomId} with nickname: ${name}`);
+    console.log(`Socket connected: ${Boolean(socket)}, isConnected: ${isConnected}`);
     
     setNickname(name);
     setNicknameError(undefined);
     setShowNicknameModal(false);
     
     if (socket && isConnected) {
+      console.log(`Emitting user:join event to room: ${roomId}`);
       socket.emit("user:join", { roomId, nickname: name });
+    } else {
+      console.error("Cannot join: Socket not connected");
+      
+      // Add fallback for connection issues - try to initialize socket again
+      if (socket && !isConnected) {
+        console.log("Attempting to reconnect socket...");
+        socket.connect();
+        
+        // Wait a bit and try to join again
+        setTimeout(() => {
+          if (socket.connected) {
+            console.log("Socket reconnected, trying to join again");
+            socket.emit("user:join", { roomId, nickname: name });
+          } else {
+            console.error("Socket reconnection failed");
+          }
+        }, 1000);
+      }
     }
   };
 
