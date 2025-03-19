@@ -438,17 +438,44 @@ const WebpageRoom = () => {
   const onPrivateMessage = (message: Message) => {
     console.log("🟢 Main component received private message:", message);
     
-    // Process only if:
-    // 1. The message is for this room AND
-    // 2. The message is either to or from this user
-    if ((message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!))
-        && (message.nickname === nickname || message.recipient === nickname)) {
+    // Check if this is a broadcast message
+    // @ts-ignore - broadcastPrivate is a custom property we added in our server code
+    const isBroadcastMessage = message.broadcastPrivate === true;
+    
+    // For broadcast messages, we need manual filtering
+    let isRelevantForThisUser = false;
+    
+    if (isBroadcastMessage) {
+      // Only consider broadcast messages if:
+      // 1. Current user is the recipient OR
+      // 2. Current user is the sender
+      const userIsRecipient = message.recipient?.toLowerCase() === nickname?.toLowerCase();
+      const userIsSender = message.nickname?.toLowerCase() === nickname?.toLowerCase();
       
-      // Important: We no longer store private messages in the main component
-      // The PrivateChatDialog component handles its own message storage
+      isRelevantForThisUser = userIsRecipient || userIsSender;
+      console.log("🟢 Broadcast private message relevance:", {
+        userIsRecipient,
+        userIsSender,
+        isRelevantForThisUser
+      });
+    } else {
+      // For direct messages, check if:
+      // 1. The message is for this room AND
+      // 2. The message is either to or from this user
+      isRelevantForThisUser = 
+        (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!))
+        && (message.nickname?.toLowerCase() === nickname?.toLowerCase() || 
+            message.recipient?.toLowerCase() === nickname?.toLowerCase());
+    }
+    
+    // Only process if relevant for this user
+    if (isRelevantForThisUser) {
+      console.log("🟢 Private message IS relevant for this user");
       
       // If the message is from someone else to this user
-      if (message.nickname !== nickname && message.recipient === nickname) {
+      if (message.nickname?.toLowerCase() !== nickname?.toLowerCase() && 
+          message.recipient?.toLowerCase() === nickname?.toLowerCase()) {
+        
         // Play a notification sound
         playNotificationSound();
         
@@ -456,7 +483,7 @@ const WebpageRoom = () => {
         // regardless of whether the chat is open
         setVisitors(prevVisitors => {
           return prevVisitors.map(visitor => {
-            if (visitor.nickname === message.nickname) {
+            if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
               // Increment unread count
               return {
                 ...visitor,
@@ -488,6 +515,8 @@ const WebpageRoom = () => {
         // Auto-open the private chat for immediate visibility
         handleStartPrivateChat(message.nickname || "");
       }
+    } else {
+      console.log("🟢 Private message is NOT relevant for this user - ignoring");
     }
   };
 
