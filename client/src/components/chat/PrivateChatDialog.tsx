@@ -66,7 +66,7 @@ const PrivateChatDialog = ({
         // Add to chat history
         setChatHistory(prev => {
           const otherUser = message.nickname === currentUser ? 
-            (message.recipient || "") : message.nickname || "";
+            (message.recipient || "") : (message.nickname || "");
           if (otherUser) {
             const prevMessages = prev.get(otherUser) || [];
             const newMap = new Map(prev);

@@ -545,9 +545,21 @@ const WebpageRoom = () => {
             currentUser={nickname || currentUser}
             onSetStatus={handleSetStatus}
             url={url}
+            onStartPrivateChat={handleStartPrivateChat}
+            socket={socket}
           />
         </div>
       </div>
+      
+      {/* Private Chat Dialog */}
+      <PrivateChatDialog
+        isOpen={privateChatOpen}
+        onClose={handleClosePrivateChat}
+        recipientName={privateChatRecipient}
+        currentUser={nickname || currentUser}
+        socket={socket}
+        roomId={roomId || ""}
+      />
     </div>
   );
 };
