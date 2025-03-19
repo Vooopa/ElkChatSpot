@@ -21,11 +21,16 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
   };
 
   // Function to generate a consistent color based on nickname
-  const getColorClass = (nickname: string) => {
+  const getColorClass = (nickname: string): string => {
     const colors = [
       "blue", "purple", "green", "amber", 
       "rose", "indigo", "teal", "cyan"
     ];
+    
+    // Safety check: if nickname is undefined or empty, return a default color
+    if (!nickname || nickname.length === 0) {
+      return colors[0];
+    }
     
     // Simple hash function to determine color
     const hash = nickname.split('').reduce((acc, char) => {
@@ -78,10 +83,53 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
             </div>
           );
         }
+        
+        // Private message
+        if (message.type === MessageType.PRIVATE_MESSAGE) {
+          const isCurrentUser = message.nickname === currentUser;
+          const colorName = getColorClass(message.nickname || "Anonymous");
+          const time = message.timestamp ? format(new Date(message.timestamp), "h:mm a") : "";
+          const recipientText = isCurrentUser 
+            ? `Private message to ${message.recipient || "Unknown"}` 
+            : `Private message from ${message.nickname || "Anonymous"}`;
+            
+          return (
+            <div
+              key={index}
+              className={`user-message flex mb-4 ${isCurrentUser ? "justify-end" : ""}`}
+            >
+              {!isCurrentUser && (
+                <div className={`w-8 h-8 rounded-full bg-${colorName}-100 flex-shrink-0 flex items-center justify-center text-${colorName}-500 font-medium mr-2`}>
+                  {getInitial(message.nickname || '')}
+                </div>
+              )}
+              <div className="max-w-[80%]">
+                <div className={`flex items-baseline mb-0.5 ${isCurrentUser ? "justify-end" : ""}`}>
+                  <span className="text-xs text-purple-500 font-medium mr-1">{recipientText}</span>
+                  <span className="text-xs text-gray-500 ml-1">{time}</span>
+                </div>
+                <div 
+                  className={`${
+                    isCurrentUser
+                      ? "bg-purple-500 bg-opacity-90 text-white rounded-lg rounded-tr-none"
+                      : "bg-purple-50 text-purple-800 rounded-lg rounded-tl-none border border-purple-100"
+                  } p-3 shadow-sm`}
+                >
+                  <p className="text-sm">{message.text}</p>
+                </div>
+              </div>
+              {isCurrentUser && (
+                <div className={`w-8 h-8 rounded-full bg-${colorName}-100 flex-shrink-0 flex items-center justify-center text-${colorName}-500 font-medium ml-2`}>
+                  {getInitial(message.nickname || '')}
+                </div>
+              )}
+            </div>
+          );
+        }
 
-        // User message
+        // Regular user message
         const isCurrentUser = message.nickname === currentUser;
-        const colorName = getColorClass(message.nickname);
+        const colorName = getColorClass(message.nickname || "Anonymous");
         const time = message.timestamp ? format(new Date(message.timestamp), "h:mm a") : "";
 
         return (

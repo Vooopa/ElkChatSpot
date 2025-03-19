@@ -12,6 +12,7 @@ interface ChatAppProps {
   onlineCount: number;
   roomInfo: string;
   showNicknameModal: boolean;
+  nicknameError?: string;
   onSetNickname: (nickname: string) => void;
   onSendMessage: (message: string) => void;
 }
@@ -23,6 +24,7 @@ const ChatApp = ({
   onlineCount,
   roomInfo,
   showNicknameModal,
+  nicknameError,
   onSetNickname,
   onSendMessage,
 }: ChatAppProps) => {
@@ -36,9 +38,14 @@ const ChatApp = ({
         </div>
       </main>
       
-      <MessageInput onSendMessage={onSendMessage} />
+      <div className="px-4 py-4 border-t bg-white">
+        <MessageInput onSendMessage={onSendMessage} />
+        <div className="mt-2 text-xs text-gray-500">
+          Tip: To send a private message, use /pm username message
+        </div>
+      </div>
       
-      {showNicknameModal && <NicknameModal onSetNickname={onSetNickname} />}
+      {showNicknameModal && <NicknameModal onSetNickname={onSetNickname} error={nicknameError} />}
       
       {!isConnected && <ConnectionStatus />}
     </div>
