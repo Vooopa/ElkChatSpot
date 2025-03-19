@@ -152,6 +152,10 @@ const ChatRoom = () => {
     // User presence events
     newSocket.on("user:joined", (message: Message) => {
       console.log(`User joined:`, message);
+      // Check for broadcast flag (added by our server code)
+      // @ts-ignore - isBroadcast is added by our server code
+      const isBroadcast = message.isBroadcast;
+      
       // Check if this event is for our room
       if (message.roomId === roomId) {
         // Check for duplicates
@@ -161,14 +165,30 @@ const ChatRoom = () => {
                m.type === MessageType.USER_JOINED
         );
         
-        if (!isDuplicate) {
-          setMessages((prev) => [...prev, message]);
+        // Only add if not a duplicate or if it's a direct (non-broadcast) message
+        if (!isDuplicate || !isBroadcast) {
+          // If we get a direct message after already adding a broadcast, replace it
+          if (!isBroadcast && isDuplicate) {
+            // Replace existing message
+            setMessages(prev => prev.map(m => 
+              (m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.type === MessageType.USER_JOINED) ? message : m
+            ));
+          } else if (!isDuplicate) {
+            // Add new message
+            setMessages((prev) => [...prev, message]);
+          }
         }
       }
     });
 
     newSocket.on("user:left", (message: Message) => {
       console.log(`User left:`, message);
+      // Check for broadcast flag (added by our server code)
+      // @ts-ignore - isBroadcast is added by our server code
+      const isBroadcast = message.isBroadcast;
+      
       // Check if this event is for our room
       if (message.roomId === roomId) {
         // Check for duplicates
@@ -178,8 +198,20 @@ const ChatRoom = () => {
                m.type === MessageType.USER_LEFT
         );
         
-        if (!isDuplicate) {
-          setMessages((prev) => [...prev, message]);
+        // Only add if not a duplicate or if it's a direct (non-broadcast) message
+        if (!isDuplicate || !isBroadcast) {
+          // If we get a direct message after already adding a broadcast, replace it
+          if (!isBroadcast && isDuplicate) {
+            // Replace existing message
+            setMessages(prev => prev.map(m => 
+              (m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.type === MessageType.USER_LEFT) ? message : m
+            ));
+          } else if (!isDuplicate) {
+            // Add new message
+            setMessages((prev) => [...prev, message]);
+          }
         }
       }
     });

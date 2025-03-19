@@ -325,7 +325,7 @@ const WebpageRoom = () => {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
-    // Ignore broadcast messages if we already received a direct one
+    // Ignore broadcast messages if they're duplicates
     // @ts-ignore - isBroadcast is added by our server code
     const isBroadcast = message.isBroadcast;
     
@@ -338,9 +338,20 @@ const WebpageRoom = () => {
              m.type === MessageType.USER_JOINED
       );
       
-      if (!isDuplicate) {
-        // Add join message to chat
-        setMessages(prev => [...prev, message]);
+      // Only add if not a duplicate or if it's a direct (non-broadcast) message
+      if (!isDuplicate || !isBroadcast) {
+        // If we get a direct message after already adding a broadcast, replace it
+        if (!isBroadcast && isDuplicate) {
+          // Replace existing message
+          setMessages(prev => prev.map(m => 
+            (m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_JOINED) ? message : m
+          ));
+        } else if (!isDuplicate) {
+          // Add new message
+          setMessages(prev => [...prev, message]);
+        }
       }
       
       // Request updated visitor list (only for direct messages to avoid multiple requests)
@@ -353,7 +364,7 @@ const WebpageRoom = () => {
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
-    // Ignore broadcast messages if we already received a direct one
+    // Ignore broadcast messages if they're duplicates
     // @ts-ignore - isBroadcast is added by our server code
     const isBroadcast = message.isBroadcast;
     
@@ -366,9 +377,20 @@ const WebpageRoom = () => {
              m.type === MessageType.USER_LEFT
       );
       
-      if (!isDuplicate) {
-        // Add leave message to chat
-        setMessages(prev => [...prev, message]);
+      // Only add if not a duplicate or if it's a direct (non-broadcast) message
+      if (!isDuplicate || !isBroadcast) {
+        // If we get a direct message after already adding a broadcast, replace it
+        if (!isBroadcast && isDuplicate) {
+          // Replace existing message
+          setMessages(prev => prev.map(m => 
+            (m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_LEFT) ? message : m
+          ));
+        } else if (!isDuplicate) {
+          // Add new message
+          setMessages(prev => [...prev, message]);
+        }
       }
       
       // Request updated visitor list (only for direct messages to avoid multiple requests)
