@@ -132,6 +132,10 @@ export default function WidgetChat() {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
+    // Ignore broadcast messages if we already received a direct one
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
       // Check if we already have this message to avoid duplicates
@@ -141,15 +145,30 @@ export default function WidgetChat() {
              m.type === MessageType.USER_JOINED
       );
       
-      if (!isDuplicate) {
-        // Add join message to chat
-        setMessages(prev => [...prev, message]);
+      // Only add if not a duplicate or if it's the direct (non-broadcast) version
+      if (!isDuplicate || !isBroadcast) {
+        // If we get a direct message after already adding a broadcast, replace it
+        if (!isBroadcast && isDuplicate) {
+          // Replace existing message
+          setMessages(prev => prev.map(m => 
+            (m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_JOINED) ? message : m
+          ));
+        } else if (!isDuplicate) {
+          // Add new message
+          setMessages(prev => [...prev, message]);
+        }
       }
     }
   };
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
+    // Ignore broadcast messages if we already received a direct one
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
       // Check if we already have this message to avoid duplicates
@@ -159,16 +178,31 @@ export default function WidgetChat() {
              m.type === MessageType.USER_LEFT
       );
       
-      if (!isDuplicate) {
-        // Add leave message to chat
-        setMessages(prev => [...prev, message]);
+      // Only add if not a duplicate or if it's the direct (non-broadcast) version
+      if (!isDuplicate || !isBroadcast) {
+        // If we get a direct message after already adding a broadcast, replace it
+        if (!isBroadcast && isDuplicate) {
+          // Replace existing message
+          setMessages(prev => prev.map(m => 
+            (m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_LEFT) ? message : m
+          ));
+        } else if (!isDuplicate) {
+          // Add new message
+          setMessages(prev => [...prev, message]);
+        }
       }
     }
   };
 
   const onChatMessage = (message: Message) => {
     console.log("Chat message received:", message);
-    // Handle messages for the current room, even if they're broadcast globally
+    // Ignore broadcast messages if they're duplicates
+    // @ts-ignore - isBroadcast is added by our server code
+    const isBroadcast = message.isBroadcast;
+    
+    // Handle messages for the current room only
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
       // Check if we already have this message to avoid duplicates
       const isDuplicate = messages.some(
@@ -177,8 +211,20 @@ export default function WidgetChat() {
              m.text === message.text
       );
       
-      if (!isDuplicate) {
-        setMessages(prev => [...prev, message]);
+      // Only add message if not duplicate, or if it's the direct (non-broadcast) version
+      if (!isDuplicate || !isBroadcast) {
+        // If we get a direct message after already adding a broadcast, replace it
+        if (!isBroadcast && isDuplicate) {
+          // Replace existing message
+          setMessages(prev => prev.map(m => 
+            (m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.text === message.text) ? message : m
+          ));
+        } else if (!isDuplicate) {
+          // Add new message
+          setMessages(prev => [...prev, message]);
+        }
       }
     }
   };

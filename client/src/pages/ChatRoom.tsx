@@ -72,6 +72,10 @@ const ChatRoom = () => {
     // Message events
     newSocket.on("chat:message", (message: Message) => {
       console.log(`Chat message received:`, message);
+      // Check for broadcast flag (added by our server code)
+      // @ts-ignore - isBroadcast is added by our server code
+      const isBroadcast = message.isBroadcast;
+      
       // Check if this message is for our room
       if (message.roomId === roomId) {
         // Check for duplicates
@@ -81,16 +85,32 @@ const ChatRoom = () => {
                m.text === message.text
         );
         
-        if (!isDuplicate) {
-          setMessages((prev) => [...prev, message]);
+        // Only add if not a duplicate or if it's a direct (non-broadcast) message
+        if (!isDuplicate || !isBroadcast) {
+          // If we get a direct message after already adding a broadcast, replace it
+          if (!isBroadcast && isDuplicate) {
+            // Replace existing message
+            setMessages(prev => prev.map(m => 
+              (m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.text === message.text) ? message : m
+            ));
+          } else if (!isDuplicate) {
+            // Add new message
+            setMessages((prev) => [...prev, message]);
+          }
         }
       }
     });
     
     newSocket.on("chat:private", (message: Message) => {
       console.log(`Private message received:`, message);
-      // Check if this private message is for our room
-      if (message.roomId === roomId) {
+      // Check for broadcast flag (added by our server code)
+      // @ts-ignore - isBroadcast is added by our server code
+      const isBroadcast = message.isBroadcast;
+      
+      // Only process messages relevant to this user (as sender or recipient)
+      if (message.roomId === roomId && (message.nickname === nickname || message.recipient === nickname)) {
         // Check for duplicates
         const isDuplicate = messages.some(
           m => m.timestamp === message.timestamp && 
@@ -100,11 +120,25 @@ const ChatRoom = () => {
                m.type === MessageType.PRIVATE_MESSAGE
         );
         
-        if (!isDuplicate) {
-          setMessages((prev) => [...prev, message]);
+        // Only add if not a duplicate or if it's a direct (non-broadcast) message
+        if (!isDuplicate || !isBroadcast) {
+          // If we get a direct message after already adding a broadcast, replace it
+          if (!isBroadcast && isDuplicate) {
+            // Replace existing message
+            setMessages(prev => prev.map(m => 
+              (m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.text === message.text &&
+               m.recipient === message.recipient &&
+               m.type === MessageType.PRIVATE_MESSAGE) ? message : m
+            ));
+          } else if (!isDuplicate) {
+            // Add new message
+            setMessages((prev) => [...prev, message]);
+          }
           
-          // Show toast for incoming private messages
-          if (message.nickname !== nickname) {
+          // Show toast for incoming private messages (only for direct messages, not broadcasts)
+          if (message.nickname !== nickname && !isBroadcast) {
             toast({
               title: `Private message from ${message.nickname}`,
               description: message.text,
