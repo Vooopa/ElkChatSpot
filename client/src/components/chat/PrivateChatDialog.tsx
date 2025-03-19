@@ -60,52 +60,45 @@ const PrivateChatDialog = ({
     function handlePrivateMessage(message: Message) {
       console.log("🔵 Received private message in dialog:", message);
       
-      // Add more debug info
-      console.log("🔵 Context:", {
+      // SEMPLICISSIMO controllo di rilevanza
+      const isFromCurrentUser = message.nickname === currentUser;
+      const isToCurrentUser = message.recipient === currentUser;
+      const isFromRecipient = message.nickname === recipientName;
+      const isToRecipient = message.recipient === recipientName;
+      
+      // Il messaggio è rilevante se:
+      // 1. È da me all'utente con cui sto chattando, OPPURE
+      // 2. È dall'utente con cui sto chattando a me
+      const isRelevant = (isFromCurrentUser && isToRecipient) || (isFromRecipient && isToCurrentUser);
+      
+      console.log(`🔵 Rilevanza: ${isRelevant}`, {
+        isFromCurrentUser,
+        isToCurrentUser,
+        isFromRecipient,
+        isToRecipient,
         currentUser,
         recipientName,
         messageFrom: message.nickname,
         messageTo: message.recipient
       });
       
-      // GREATLY simplified message relevance check:
-      // A message is relevant if:
-      // 1. It's from the current user to the recipient we're chatting with, OR
-      // 2. It's from the recipient we're chatting with to the current user
-      const isFromCurrentUser = message.nickname?.toLowerCase() === currentUser?.toLowerCase();
-      const isToCurrentUser = message.recipient?.toLowerCase() === currentUser?.toLowerCase();
-      const isFromRecipient = message.nickname?.toLowerCase() === recipientName?.toLowerCase();
-      const isToRecipient = message.recipient?.toLowerCase() === recipientName?.toLowerCase();
-      
-      const isRelevant = (isFromCurrentUser && isToRecipient) || (isFromRecipient && isToCurrentUser);
-      
-      console.log("🔵 Message relevance check:", {
-        isFromCurrentUser,
-        isToCurrentUser,
-        isFromRecipient,
-        isToRecipient,
-        isRelevant
-      });
-      
-      if (!isRelevant) {
-        console.log("🔵 Message not relevant to this chat, ignoring");
-        return;
+      if (isRelevant) {
+        console.log("🔵 Messaggio rilevante per questa chat, aggiungo");
+        
+        // Aggiungi al messaggio nella chatbox
+        setMessages(prevMessages => [...prevMessages, message]);
+        
+        // Salva anche nella cronologia per riferimento futuro
+        setChatHistory(prevHistory => {
+          const otherUser = isFromCurrentUser ? message.recipient! : message.nickname!;
+          const prevMessages = prevHistory.get(otherUser) || [];
+          const newHistory = new Map(prevHistory);
+          newHistory.set(otherUser, [...prevMessages, message]);
+          return newHistory;
+        });
+      } else {
+        console.log("🔵 Messaggio NON rilevante per questa chat, ignorato");
       }
-      
-      // Message is relevant, so add it to our chat
-      console.log("🔵 Message IS relevant, adding to chat");
-      
-      // Add to messages state
-      setMessages(prevMessages => [...prevMessages, message]);
-      
-      // Store in chat history
-      setChatHistory(prevHistory => {
-        const otherUser = isFromCurrentUser ? message.recipient! : message.nickname!;
-        const prevMessages = prevHistory.get(otherUser) || [];
-        const newHistory = new Map(prevHistory);
-        newHistory.set(otherUser, [...prevMessages, message]);
-        return newHistory;
-      });
     }
 
     if (socket) {
