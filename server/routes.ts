@@ -308,7 +308,7 @@ ${entryCode}
         // Regular message - broadcast to everyone in the room
         console.log(`Broadcasting message from ${completeMessage.nickname} to room ${message.roomId}`);
         // Direct targeted emit to the specific room only
-        io.to(message.roomId).emit("chat:message", { ...completeMessage, roomBroadcast: true, isBroadcast: false });
+        io.to(message.roomId).emit("chat:message", completeMessage);
       }
     });
     
@@ -335,7 +335,9 @@ ${entryCode}
       const room = storage.getRoom(message.roomId);
       if (room && room.visitors) {
         console.log(`Current visitors in room ${message.roomId}:`);
-        for (const [socketId, visitor] of room.visitors.entries()) {
+        // Convert to array first to avoid iterator issues
+        const visitorEntries = Array.from(room.visitors.entries());
+        for (const [socketId, visitor] of visitorEntries) {
           console.log(`  - ${visitor.nickname} (${socketId})`);
         }
       }
@@ -343,7 +345,9 @@ ${entryCode}
       // Find the recipient's socket ID - with extra case-insensitive matching
       let recipientSocketId: string | undefined = undefined;
       if (room && room.visitors) {
-        for (const [socketId, visitor] of room.visitors.entries()) {
+        // Convert to array first to avoid iterator issues
+        const visitorEntries = Array.from(room.visitors.entries());
+        for (const [socketId, visitor] of visitorEntries) {
           if (visitor.nickname.toLowerCase() === message.recipient.toLowerCase()) {
             recipientSocketId = socketId;
             break;
