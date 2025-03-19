@@ -328,13 +328,34 @@ ${entryCode}
         senderSocketId: socket.id
       };
       
-      // Find the recipient's socket ID
-      const recipientSocketId = storage.getSocketIdByNickname(message.roomId, message.recipient);
+      // Debug log for current socket and nickname mapping
+      console.log(`Current sender socket info: ${socket.id} as ${message.nickname}`);
+      
+      // Debug: log all visitors in this room
+      const room = storage.getRoom(message.roomId);
+      if (room && room.visitors) {
+        console.log(`Current visitors in room ${message.roomId}:`);
+        for (const [socketId, visitor] of room.visitors.entries()) {
+          console.log(`  - ${visitor.nickname} (${socketId})`);
+        }
+      }
+      
+      // Find the recipient's socket ID - with extra case-insensitive matching
+      let recipientSocketId: string | undefined = undefined;
+      if (room && room.visitors) {
+        for (const [socketId, visitor] of room.visitors.entries()) {
+          if (visitor.nickname.toLowerCase() === message.recipient.toLowerCase()) {
+            recipientSocketId = socketId;
+            break;
+          }
+        }
+      }
       
       console.log(`Private message from ${message.nickname} to ${message.recipient}`, { 
         recipientFound: !!recipientSocketId,
         senderSocketId: socket.id,
-        recipientSocketId
+        recipientSocketId,
+        recipientLookup: message.recipient.toLowerCase()
       });
       
       if (recipientSocketId) {
@@ -343,9 +364,20 @@ ${entryCode}
         // Also send back to sender
         socket.emit("chat:private", completeMessage);
       } else {
-        // Send an error back to the sender
+        // Special case: try a broader search by using the room broadcast
+        // This helps if the socket mapping is inconsistent but the user is in the room
+        const broadcastMessage = {
+          ...completeMessage,
+          broadcastPrivate: true // Special flag for client filtering
+        };
+        
+        // Broadcast to all sockets in the room - clients will filter by recipient
+        io.to(message.roomId).emit("chat:private", broadcastMessage);
+        console.log(`Broadcasting private message to room as fallback`);
+        
+        // Also notify sender that we're using broadcast mode 
         socket.emit("error:message", {
-          message: `User '${message.recipient}' was not found or is offline.`
+          message: `User '${message.recipient}' could not be directly reached. The message was broadcast to the room.`
         });
       }
     });

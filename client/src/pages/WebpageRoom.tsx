@@ -14,53 +14,25 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
-// Define a global notification system for private messages
-// This will bypass the toast system which might be having issues
-const createGlobalNotification = (sender: string, message: string, onClick: () => void) => {
-  // Create a notification element
-  const notification = document.createElement('div');
-  notification.className = 'fixed top-10 right-10 z-50 bg-red-600 text-white p-4 rounded-lg shadow-lg max-w-sm animate-bounce';
-  notification.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
-  
-  // Add content
-  notification.innerHTML = `
-    <div class="flex flex-col">
-      <div class="font-bold text-lg">📩 NEW PRIVATE MESSAGE</div>
-      <div class="font-semibold">From: ${sender}</div>
-      <div class="mt-2">${message}</div>
-      <button class="mt-2 bg-white text-red-600 py-1 px-3 rounded-lg font-bold hover:bg-red-100 transition-colors">
-        REPLY
-      </button>
-    </div>
-  `;
-  
-  // Add click handler
-  notification.querySelector('button')?.addEventListener('click', () => {
-    onClick();
-    document.body.removeChild(notification);
-  });
-  
-  // Auto remove after 15 seconds
-  setTimeout(() => {
-    if (document.body.contains(notification)) {
-      document.body.removeChild(notification);
-    }
-  }, 15000);
-  
-  // Add to body
-  document.body.appendChild(notification);
-  
-  // Play sound
+// Simple notification helper
+const playNotificationSound = () => {
   try {
-    const audio = new Audio();
-    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLHPM+N2fWy4JGkvB/f3GhVQTBi960fjnoHImDw9MuPP7x6JvMwgMJoPZ+Ou1d0kZCAUzi9/87bh+UiQNBhra/f3WmGAoCBUq0/z96riCL2RKCyxIjTUKLFp5aUkNX3Z0PXXnyLiMXiUvj9Hopz8VLAkxq/3nsGtOCwMEw/v546dPIw4PNL7w0sWdbw4QKa3D4OKoWBYdMpbT5diy}';
-    audio.volume = 0.5;
-    audio.play();
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 880; // A5 note
+    gainNode.gain.value = 0.1; // Quiet volume
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    setTimeout(() => oscillator.stop(), 200);
   } catch (e) {
     console.error("Audio playback failed", e);
   }
-  
-  return notification;
 };
 
 const WebpageRoom = () => {
@@ -477,14 +449,8 @@ const WebpageRoom = () => {
       
       // If the message is from someone else to this user
       if (message.nickname !== nickname && message.recipient === nickname) {
-        // Create a prominent on-screen notification
-        // This bypasses the toast system which seems to be having issues
-        const senderName = message.nickname || 'Anonymous';
-        createGlobalNotification(
-          senderName, 
-          message.text,
-          () => handleStartPrivateChat(senderName)
-        );
+        // Play a notification sound
+        playNotificationSound();
         
         // Update unread count for this sender in visitors list - always do this
         // regardless of whether the chat is open
@@ -503,75 +469,24 @@ const WebpageRoom = () => {
         
         console.log("🟢 Showing private message notification from", message.nickname);
         
-        // Always show notification and play sound, even for subsequent messages
-        // This ensures users don't miss messages even when chat is open
-        
-        // Play notification sound if browser supports it - make it louder
-        try {
-          // Create audio context for a notification sound
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-          const oscillator = audioContext.createOscillator();
-          const gainNode = audioContext.createGain();
-          
-          // Two-tone notification for more attention
-          oscillator.type = 'sine';
-          oscillator.frequency.value = 1200; // Higher frequency for more attention
-          gainNode.gain.value = 0.2; // Louder volume
-          
-          oscillator.connect(gainNode);
-          gainNode.connect(audioContext.destination);
-          
-          oscillator.start();
-          
-          // Play two-tone beep
-          setTimeout(() => {
-            oscillator.frequency.value = 800; // Second tone
-          }, 150);
-          
-          setTimeout(() => {
-            oscillator.stop();
-          }, 300);
-        } catch (e) {
-          console.log("Browser doesn't support AudioContext");
-        }
-        
-        // Custom CSS animation for the notification to make it more noticeable
-        document.head.insertAdjacentHTML('beforeend', `
-          <style>
-            @keyframes pulse-border {
-              0% { border-color: rgb(248, 113, 113); }
-              50% { border-color: rgb(239, 68, 68); }
-              100% { border-color: rgb(248, 113, 113); }
-            }
-            .private-message-toast {
-              animation: pulse-border 2s infinite;
-              box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.25);
-            }
-          </style>
-        `);
-        
-        // Show a notification toast with a reply button - make it even more attention-grabbing
+        // Show a simplified notification toast
         toast({
-          title: `📩 PRIVATE MESSAGE from ${message.nickname}`,
+          title: `New message from ${message.nickname}`,
           description: message.text,
-          variant: "destructive", // More noticeable red variant
-          duration: 10000, // Stay longer on screen (10 seconds)
-          className: "private-message-toast border-3 border-red-400 shadow-lg rounded-lg",
+          variant: "default",
+          duration: 5000,
           action: (
             <div 
-              className="cursor-pointer bg-white text-red-600 px-3 py-1 rounded font-medium hover:bg-red-50 transition-colors shadow"
+              className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
               onClick={() => handleStartPrivateChat(message.nickname || "")}
             >
-              REPLY
+              Reply
             </div>
           )
         });
         
-        // Only auto-open private chat for the first message
-        if (!privateChatOpen && !privateChatRecipient) {
-          console.log("🟢 Auto-opening private chat with", message.nickname);
-          handleStartPrivateChat(message.nickname || "");
-        }
+        // Auto-open the private chat for immediate visibility
+        handleStartPrivateChat(message.nickname || "");
       }
     }
   };
