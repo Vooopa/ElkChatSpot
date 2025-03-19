@@ -428,68 +428,91 @@ const WebpageRoom = () => {
       
       // If the message is from someone else to this user
       if (message.nickname !== nickname && message.recipient === nickname) {
-        // Update unread count for this sender in visitors list
-        if (!(privateChatOpen && privateChatRecipient === message.nickname)) {
-          // Increment unread message count for this user
-          setVisitors(prevVisitors => {
-            return prevVisitors.map(visitor => {
-              if (visitor.nickname === message.nickname) {
-                // Increment unread count
-                return {
-                  ...visitor,
-                  unreadMessages: (visitor.unreadMessages || 0) + 1
-                };
-              }
-              return visitor;
-            });
+        // Update unread count for this sender in visitors list - always do this
+        // regardless of whether the chat is open
+        setVisitors(prevVisitors => {
+          return prevVisitors.map(visitor => {
+            if (visitor.nickname === message.nickname) {
+              // Increment unread count
+              return {
+                ...visitor,
+                unreadMessages: (visitor.unreadMessages || 0) + 1
+              };
+            }
+            return visitor;
           });
+        });
+        
+        console.log("🟢 Showing private message notification from", message.nickname);
+        
+        // Always show notification and play sound, even for subsequent messages
+        // This ensures users don't miss messages even when chat is open
+        
+        // Play notification sound if browser supports it - make it louder
+        try {
+          // Create audio context for a notification sound
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
           
-          console.log("🟢 Showing private message notification from", message.nickname);
+          // Two-tone notification for more attention
+          oscillator.type = 'sine';
+          oscillator.frequency.value = 1200; // Higher frequency for more attention
+          gainNode.gain.value = 0.2; // Louder volume
           
-          // Play notification sound if browser supports it
-          try {
-            // Create audio context for a notification sound
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.type = 'sine';
-            oscillator.frequency.value = 1000; // frequency in hertz
-            gainNode.gain.value = 0.1; // volume control
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.start();
-            setTimeout(() => {
-              oscillator.stop();
-            }, 200);
-          } catch (e) {
-            console.log("Browser doesn't support AudioContext");
-          }
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
           
-          // Show a notification toast with a reply button - use more attention-grabbing style
-          toast({
-            title: `New message from ${message.nickname}`,
-            description: message.text,
-            variant: "destructive", // More noticeable red variant
-            duration: 8000, // Stay longer on screen (8 seconds)
-            className: "private-message-toast border-2 border-red-400 shadow-lg",
-            action: (
-              <div 
-                className="cursor-pointer bg-white text-red-600 px-3 py-1 rounded font-medium hover:bg-red-50 transition-colors"
-                onClick={() => handleStartPrivateChat(message.nickname || "")}
-              >
-                Reply
-              </div>
-            )
-          });
+          oscillator.start();
           
-          // Automatically open private chat with this user if no private chat is open
-          if (!privateChatOpen) {
-            console.log("🟢 Auto-opening private chat with", message.nickname);
-            handleStartPrivateChat(message.nickname || "");
-          }
+          // Play two-tone beep
+          setTimeout(() => {
+            oscillator.frequency.value = 800; // Second tone
+          }, 150);
+          
+          setTimeout(() => {
+            oscillator.stop();
+          }, 300);
+        } catch (e) {
+          console.log("Browser doesn't support AudioContext");
+        }
+        
+        // Custom CSS animation for the notification to make it more noticeable
+        document.head.insertAdjacentHTML('beforeend', `
+          <style>
+            @keyframes pulse-border {
+              0% { border-color: rgb(248, 113, 113); }
+              50% { border-color: rgb(239, 68, 68); }
+              100% { border-color: rgb(248, 113, 113); }
+            }
+            .private-message-toast {
+              animation: pulse-border 2s infinite;
+              box-shadow: 0 10px 25px -5px rgba(220, 38, 38, 0.25);
+            }
+          </style>
+        `);
+        
+        // Show a notification toast with a reply button - make it even more attention-grabbing
+        toast({
+          title: `📩 PRIVATE MESSAGE from ${message.nickname}`,
+          description: message.text,
+          variant: "destructive", // More noticeable red variant
+          duration: 10000, // Stay longer on screen (10 seconds)
+          className: "private-message-toast border-3 border-red-400 shadow-lg rounded-lg",
+          action: (
+            <div 
+              className="cursor-pointer bg-white text-red-600 px-3 py-1 rounded font-medium hover:bg-red-50 transition-colors shadow"
+              onClick={() => handleStartPrivateChat(message.nickname || "")}
+            >
+              REPLY
+            </div>
+          )
+        });
+        
+        // Only auto-open private chat for the first message
+        if (!privateChatOpen && !privateChatRecipient) {
+          console.log("🟢 Auto-opening private chat with", message.nickname);
+          handleStartPrivateChat(message.nickname || "");
         }
       }
     }
@@ -516,6 +539,24 @@ const WebpageRoom = () => {
   
   // Handle closing the private chat dialog
   const handleClosePrivateChat = () => {
+    // If there are unread messages from the current recipient, keep them in the badge
+    // This ensures the user can still see there are unread messages when they close the dialog
+    const currentRecipientVisitor = visitors.find(v => v.nickname === privateChatRecipient);
+    
+    // Only preserve unread messages if dialogue is closed without viewing them
+    if (currentRecipientVisitor) {
+      // Show a reminder toast if there are unread messages
+      if (currentRecipientVisitor.unreadMessages && currentRecipientVisitor.unreadMessages > 0) {
+        toast({
+          title: `💬 Unread Messages`,
+          description: `You have ${currentRecipientVisitor.unreadMessages} unread message(s) from ${privateChatRecipient}`,
+          variant: "default",
+          className: "bg-blue-50 border border-blue-200",
+          duration: 4000
+        });
+      }
+    }
+    
     setPrivateChatOpen(false);
   };
   
@@ -539,18 +580,47 @@ const WebpageRoom = () => {
 
   const domain = getDomainFromUrl(url);
   const roomInfo = `Chatting about ${domain}`;
+  
+  // Calculate total unread messages
+  const totalUnreadMessages = visitors.reduce((sum, visitor) => {
+    return sum + (visitor.unreadMessages || 0);
+  }, 0);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
-      <div className="flex-none bg-white border-b shadow-sm p-4">
+      <div className={`flex-none bg-white border-b shadow-sm p-4 ${totalUnreadMessages > 0 ? 'bg-red-50' : ''}`}>
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <Link href="/" className="mr-4 text-gray-600 hover:text-gray-900">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <Header roomInfo={roomInfo} onlineCount={visitors.length} />
+            <div className="flex items-center">
+              <Header roomInfo={roomInfo} onlineCount={visitors.length} />
+              
+              {/* Unread messages indicator */}
+              {totalUnreadMessages > 0 && (
+                <div className="ml-3 animate-pulse flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
+                  <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
+                  {totalUnreadMessages} unread private message{totalUnreadMessages > 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
           </div>
-          <div>
+          <div className="flex items-center gap-2">
+            {totalUnreadMessages > 0 && (
+              <button 
+                onClick={() => {
+                  // Find first visitor with unread messages and open chat
+                  const visitorWithUnread = visitors.find(v => (v.unreadMessages || 0) > 0 && v.nickname !== nickname);
+                  if (visitorWithUnread) {
+                    handleStartPrivateChat(visitorWithUnread.nickname);
+                  }
+                }}
+                className="px-3 py-1 bg-red-600 text-white rounded-full text-xs font-medium hover:bg-red-700 transition-colors"
+              >
+                Check messages
+              </button>
+            )}
             <a 
               href={url} 
               target="_blank" 
