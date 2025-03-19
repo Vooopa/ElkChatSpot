@@ -100,7 +100,7 @@ const Home = () => {
                   Real-time messaging
                 </li>
               </ul>
-              <Link href="/chat/lobby" className="block text-center py-3 px-4 bg-primary hover:bg-blue-600 text-white font-medium rounded-lg transition-colors">
+              <Link href="/chat" className="block text-center py-3 px-4 bg-primary hover:bg-blue-600 text-white font-medium rounded-lg transition-colors">
                 Join a Chat Room
               </Link>
             </div>
