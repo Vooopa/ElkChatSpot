@@ -325,8 +325,10 @@ const WebpageRoom = () => {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
-    // @ts-ignore - isBroadcast is added by our server code
+    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
     const isBroadcast = message.isBroadcast;
+    // @ts-ignore
+    const isRoomBroadcast = message.roomBroadcast;
     
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
@@ -337,16 +339,23 @@ const WebpageRoom = () => {
              m.type === MessageType.USER_JOINED
       );
       
-      // Simplest approach - only add messages we haven't seen yet
-      if (!isDuplicate) {
-        // Add new message if we haven't seen it before
+      // New simplified duplicate prevention logic:
+      // 1. If it's a room broadcast (sent directly to the room), we always add it
+      //    (unless we already have it)
+      // 2. If it's a global broadcast, we only add it if we haven't seen it already
+      
+      if (isRoomBroadcast && !isDuplicate) {
+        // Room broadcast (direct to this room) and not a duplicate - add it
         setMessages(prev => [...prev, message]);
         
-        // Request updated visitor list (only for direct messages to avoid multiple requests)
-        if (socket && isConnected && !isBroadcast) {
+        // Request updated visitor list (only for direct room messages to avoid multiple requests)
+        if (socket && isConnected) {
           console.log("Requesting latest visitor list after user joined");
           socket.emit("webpage:getVisitors", { roomId });
         }
+      } else if (isBroadcast && !isDuplicate) {
+        // Global broadcast and not a duplicate - add it
+        setMessages(prev => [...prev, message]);
       } else {
         console.log("Skipping duplicate visitor join message");
       }
@@ -355,8 +364,10 @@ const WebpageRoom = () => {
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
-    // @ts-ignore - isBroadcast is added by our server code
+    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
     const isBroadcast = message.isBroadcast;
+    // @ts-ignore
+    const isRoomBroadcast = message.roomBroadcast;
     
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
@@ -367,16 +378,23 @@ const WebpageRoom = () => {
              m.type === MessageType.USER_LEFT
       );
       
-      // Simplest approach - only add messages we haven't seen yet
-      if (!isDuplicate) {
-        // Add new message if we haven't seen it before
+      // New simplified duplicate prevention logic:
+      // 1. If it's a room broadcast (sent directly to the room), we always add it
+      //    (unless we already have it)
+      // 2. If it's a global broadcast, we only add it if we haven't seen it already
+      
+      if (isRoomBroadcast && !isDuplicate) {
+        // Room broadcast (direct to this room) and not a duplicate - add it
         setMessages(prev => [...prev, message]);
         
-        // Request updated visitor list (only for direct messages to avoid multiple requests)
-        if (socket && isConnected && !isBroadcast) {
+        // Request updated visitor list (only for direct room messages to avoid multiple requests)
+        if (socket && isConnected) {
           console.log("Requesting latest visitor list after user left");
           socket.emit("webpage:getVisitors", { roomId });
         }
+      } else if (isBroadcast && !isDuplicate) {
+        // Global broadcast and not a duplicate - add it
+        setMessages(prev => [...prev, message]);
       } else {
         console.log("Skipping duplicate visitor left message");
       }

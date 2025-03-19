@@ -132,8 +132,10 @@ export default function WidgetChat() {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
-    // @ts-ignore - isBroadcast is added by our server code
+    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
     const isBroadcast = message.isBroadcast;
+    // @ts-ignore
+    const isRoomBroadcast = message.roomBroadcast;
     
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
@@ -144,9 +146,16 @@ export default function WidgetChat() {
              m.type === MessageType.USER_JOINED
       );
       
-      // Simplest approach - only add messages we haven't seen yet
-      if (!isDuplicate) {
-        // Add new message if we haven't seen it before
+      // New simplified duplicate prevention logic:
+      // 1. If it's a room broadcast (sent directly to the room), we always add it
+      //    (unless we already have it)
+      // 2. If it's a global broadcast, we only add it if we haven't seen it already
+      
+      if (isRoomBroadcast && !isDuplicate) {
+        // Room broadcast (direct to this room) and not a duplicate - add it
+        setMessages(prev => [...prev, message]);
+      } else if (isBroadcast && !isDuplicate) {
+        // Global broadcast and not a duplicate - add it
         setMessages(prev => [...prev, message]);
       } else {
         console.log("Skipping duplicate visitor join message");
@@ -156,8 +165,10 @@ export default function WidgetChat() {
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
-    // @ts-ignore - isBroadcast is added by our server code
+    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
     const isBroadcast = message.isBroadcast;
+    // @ts-ignore
+    const isRoomBroadcast = message.roomBroadcast;
     
     // Check for both exact match and normalized URL match for roomId
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
@@ -168,9 +179,16 @@ export default function WidgetChat() {
              m.type === MessageType.USER_LEFT
       );
       
-      // Simplest approach - only add messages we haven't seen yet
-      if (!isDuplicate) {
-        // Add new message if we haven't seen it before
+      // New simplified duplicate prevention logic:
+      // 1. If it's a room broadcast (sent directly to the room), we always add it
+      //    (unless we already have it)
+      // 2. If it's a global broadcast, we only add it if we haven't seen it already
+      
+      if (isRoomBroadcast && !isDuplicate) {
+        // Room broadcast (direct to this room) and not a duplicate - add it
+        setMessages(prev => [...prev, message]);
+      } else if (isBroadcast && !isDuplicate) {
+        // Global broadcast and not a duplicate - add it
         setMessages(prev => [...prev, message]);
       } else {
         console.log("Skipping duplicate visitor left message");
@@ -180,9 +198,9 @@ export default function WidgetChat() {
 
   const onChatMessage = (message: Message) => {
     console.log("Chat message received:", message);
-    // @ts-ignore - isBroadcast is added by our server code
+    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
     const isBroadcast = message.isBroadcast;
-    // @ts-ignore - roomBroadcast is added by our server code
+    // @ts-ignore
     const isRoomBroadcast = message.roomBroadcast;
     
     // Check if this message is for our room
@@ -194,9 +212,16 @@ export default function WidgetChat() {
              m.text === message.text
       );
       
-      // Simplest approach - only add messages we haven't seen yet
-      if (!isDuplicate) {
-        // Add new message if we haven't seen it before
+      // New simplified duplicate prevention logic:
+      // 1. If it's a room broadcast (sent directly to the room), we always add it
+      //    (unless we already have it)
+      // 2. If it's a global broadcast, we only add it if we haven't seen it already
+      
+      if (isRoomBroadcast && !isDuplicate) {
+        // Room broadcast (direct to this room) and not a duplicate - add it
+        setMessages(prev => [...prev, message]);
+      } else if (isBroadcast && !isDuplicate) {
+        // Global broadcast and not a duplicate - add it
         setMessages(prev => [...prev, message]);
       } else {
         console.log("Skipping duplicate chat message");
