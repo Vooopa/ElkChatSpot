@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "wouter";
 import { Message, MessageType, UserStatus } from "@shared/schema";
-import { Socket } from "socket.io-client";
-import { initializeSocket, closeSocket } from "@/lib/socket";
+import { Socket, io } from "socket.io-client";
 import MessageArea from "@/components/chat/MessageArea";
 import MessageInput from "@/components/chat/MessageInput";
 import NicknameModal from "@/components/chat/NicknameModal";
@@ -26,13 +25,20 @@ export default function WidgetChat() {
   const [showNicknameModal, setShowNicknameModal] = useState(true);
   const [onlineCount, setOnlineCount] = useState(0);
 
-  // Initialize socket connection
+  // Initialize socket connection directly, similar to SimpleChatDemo and WebpageRoom
   useEffect(() => {
-    const newSocket = initializeSocket();
+    // Create a new socket with the same options used in SimpleChatDemo
+    const newSocket = io(window.location.origin, {
+      path: "/api/socket.io",
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5
+    });
+    
     setSocket(newSocket);
 
     return () => {
-      closeSocket();
+      newSocket.disconnect();
     };
   }, []);
 

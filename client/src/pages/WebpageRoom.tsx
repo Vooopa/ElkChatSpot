@@ -38,8 +38,13 @@ const WebpageRoom = () => {
 
   // Set up socket connection when the component loads
   useEffect(() => {
-    // Create a new socket with default options - same as SimpleChatDemo
-    const newSocket = io();
+    // Create a new socket with the same options used in SimpleChatDemo
+    const newSocket = io(window.location.origin, {
+      path: "/api/socket.io",
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5
+    });
     
     // Set up event listeners for connection status
     newSocket.on("connect", () => {
