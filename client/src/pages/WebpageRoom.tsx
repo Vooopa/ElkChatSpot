@@ -179,14 +179,81 @@ const WebpageRoom = () => {
     
     socket.on("chat:message", (message) => {
       console.log("Received chat:message event", message);
-      // SEMPLIFICATO: Aggiunge direttamente alla lista messaggi
-      setMessages(prev => [...prev, message]);
-      console.log("✅ Aggiunto messaggio alla chat direttamente");
+      // Ottieni la stanza del messaggio
+      const messageRoomId = message.roomId || '';
+      
+      // Verifica diretta se il messaggio è per questa stanza
+      if (messageRoomId === roomId) {
+        console.log("✅ [CHAT MESSAGE] Messaggio per questa stanza, aggiungo:", message);
+        // Aggiungi direttamente alla lista messaggi, senza nessun altro controllo
+        setMessages(prevMessages => {
+          // Super semplice - solo aggiungi in fondo
+          console.log(`📩 Aggiungendo messaggio. Messaggi attuali: ${prevMessages.length}`);
+          return [...prevMessages, message];
+        });
+      } else {
+        console.log(`❌ [CHAT MESSAGE] Messaggio non per questa stanza. MessageRoom=${messageRoomId}, CurrentRoom=${roomId}`);
+      }
     });
     
     socket.on("chat:private", (message) => {
-      console.log("Received chat:private event", message);
-      onPrivateMessage(message);
+      console.log("📩 Received chat:private event", message);
+      
+      // Verifica direttamente se sono il destinatario o il mittente
+      const isToMe = message.recipient?.toLowerCase() === nickname?.toLowerCase();
+      const isFromMe = message.nickname?.toLowerCase() === nickname?.toLowerCase();
+      
+      console.log(`📩 [PRIVATE] Verifica messaggio privato:`, {
+        isToMe, 
+        isFromMe,
+        myNickname: nickname, 
+        messageFrom: message.nickname,
+        messageTo: message.recipient
+      });
+      
+      // Se il messaggio è PER me (e non DA me), notifichiamo l'utente
+      if (isToMe && !isFromMe) {
+        console.log("📩 [PRIVATE] Messaggio privato diretto a me, notifico");
+        
+        // Aggiorna conteggio messaggi non letti
+        setVisitors(prevVisitors => {
+          return prevVisitors.map(visitor => {
+            if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
+              return {
+                ...visitor,
+                unreadMessages: (visitor.unreadMessages || 0) + 1
+              };
+            }
+            return visitor;
+          });
+        });
+        
+        // Riproduci suono di notifica
+        playNotificationSound();
+        
+        // Mostra notifica toast
+        toast({
+          title: `Nuovo messaggio da ${message.nickname}`,
+          description: message.text,
+          variant: "default",
+          duration: 5000,
+          action: (
+            <div 
+              className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
+              onClick={() => handleStartPrivateChat(message.nickname || "")}
+            >
+              Rispondi
+            </div>
+          )
+        });
+        
+        // Apri automaticamente la finestra di chat 
+        handleStartPrivateChat(message.nickname || "");
+        
+        console.log("📩 [PRIVATE] Notifica e finestra di chat aperte");
+      } else {
+        console.log("📩 [PRIVATE] Messaggio privato non richiede notifica");
+      }
     });
     
     // Handle visitor events
