@@ -14,6 +14,55 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
+// Define a global notification system for private messages
+// This will bypass the toast system which might be having issues
+const createGlobalNotification = (sender: string, message: string, onClick: () => void) => {
+  // Create a notification element
+  const notification = document.createElement('div');
+  notification.className = 'fixed top-10 right-10 z-50 bg-red-600 text-white p-4 rounded-lg shadow-lg max-w-sm animate-bounce';
+  notification.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
+  
+  // Add content
+  notification.innerHTML = `
+    <div class="flex flex-col">
+      <div class="font-bold text-lg">📩 NEW PRIVATE MESSAGE</div>
+      <div class="font-semibold">From: ${sender}</div>
+      <div class="mt-2">${message}</div>
+      <button class="mt-2 bg-white text-red-600 py-1 px-3 rounded-lg font-bold hover:bg-red-100 transition-colors">
+        REPLY
+      </button>
+    </div>
+  `;
+  
+  // Add click handler
+  notification.querySelector('button')?.addEventListener('click', () => {
+    onClick();
+    document.body.removeChild(notification);
+  });
+  
+  // Auto remove after 15 seconds
+  setTimeout(() => {
+    if (document.body.contains(notification)) {
+      document.body.removeChild(notification);
+    }
+  }, 15000);
+  
+  // Add to body
+  document.body.appendChild(notification);
+  
+  // Play sound
+  try {
+    const audio = new Audio();
+    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLHPM+N2fWy4JGkvB/f3GhVQTBi960fjnoHImDw9MuPP7x6JvMwgMJoPZ+Ou1d0kZCAUzi9/87bh+UiQNBhra/f3WmGAoCBUq0/z96riCL2RKCyxIjTUKLFp5aUkNX3Z0PXXnyLiMXiUvj9Hopz8VLAkxq/3nsGtOCwMEw/v546dPIw4PNL7w0sWdbw4QKa3D4OKoWBYdMpbT5diy}';
+    audio.volume = 0.5;
+    audio.play();
+  } catch (e) {
+    console.error("Audio playback failed", e);
+  }
+  
+  return notification;
+};
+
 const WebpageRoom = () => {
   const params = useParams();
   const [, setLocation] = useLocation();
@@ -428,6 +477,15 @@ const WebpageRoom = () => {
       
       // If the message is from someone else to this user
       if (message.nickname !== nickname && message.recipient === nickname) {
+        // Create a prominent on-screen notification
+        // This bypasses the toast system which seems to be having issues
+        const senderName = message.nickname || 'Anonymous';
+        createGlobalNotification(
+          senderName, 
+          message.text,
+          () => handleStartPrivateChat(senderName)
+        );
+        
         // Update unread count for this sender in visitors list - always do this
         // regardless of whether the chat is open
         setVisitors(prevVisitors => {
