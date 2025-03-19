@@ -128,7 +128,7 @@ export default function WidgetChat() {
         }
       ]);
     }
-  }, [socket, nickname, params.url, roomId]);
+  }, [socket, nickname, params.url, roomId, messages, normalizeUrl]);
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
