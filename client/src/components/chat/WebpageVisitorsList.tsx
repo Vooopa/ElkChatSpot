@@ -134,9 +134,10 @@ const WebpageVisitorsList = ({
           {visitors.map((visitor) => (
             <li 
               key={visitor.socketId} 
+              id={`visitor-${visitor.nickname}`}
               className={`p-2 hover:bg-gray-50 rounded-md transition-colors ${
                 visitor.nickname === currentUser ? "bg-blue-50" : ""
-              }`}
+              } ${visitor.unreadMessages ? "animate-pulse border border-red-400" : ""}`}
               onClick={() => setExpandedVisitor(
                 expandedVisitor === visitor.socketId ? null : visitor.socketId
               )}

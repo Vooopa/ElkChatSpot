@@ -232,48 +232,45 @@ const WebpageRoom = () => {
         messageTo: message.recipient
       });
       
+      // Controlla se c'è il flag speciale di notifica
+      const isNotification = message.isNotification === true;
+      
       // Sei tu il destinatario?
       if (isToMe && !isFromMe) {
         console.log("📩 [PRIVATE] Sei tu il destinatario del messaggio!");
+        console.log("📩 [PRIVATE] Flag notifica:", isNotification);
         
         const fromUser = message.nickname || '';
-        console.log(`📩 [PRIVATE] Calcolo contatore per ${fromUser}`);
         
-        // IMPORTANTE - Forza una copia completa dell'array visitors e aggiorna il contatore
-        // Questo è un hack, ma potrebbe risolvere il problema di aggiornamento UI
-        const updatedVisitors = [...visitors];
-        let visitorFound = false;
+        // Approccio più diretto e semplice
+        setVisitors(prevVisitors => {
+          return prevVisitors.map(visitor => {
+            if (visitor.nickname === fromUser) {
+              // Incrementa contatore messaggi non letti
+              const prevCount = visitor.unreadMessages || 0;
+              const newCount = prevCount + 1;
+              
+              console.log(`📩 [PRIVATE] Aggiornamento contatore: ${prevCount} -> ${newCount} per ${fromUser}`);
+              
+              return {
+                ...visitor,
+                unreadMessages: newCount
+              };
+            }
+            return visitor;
+          });
+        });
         
-        for (let i = 0; i < updatedVisitors.length; i++) {
-          if (updatedVisitors[i].nickname === fromUser) {
-            visitorFound = true;
-            const prevCount = updatedVisitors[i].unreadMessages || 0;
-            const newCount = prevCount + 1;
-            
-            console.log(`📩 [PRIVATE] Contatore aggiornato manualmente: ${prevCount} -> ${newCount}`);
-            
-            // Crea un nuovo oggetto visitor con il contatore aggiornato
-            updatedVisitors[i] = {
-              ...updatedVisitors[i],
-              unreadMessages: newCount
-            };
-            break;
-          }
-        }
-        
-        if (visitorFound) {
-          console.log('📩 [PRIVATE] Aggiorno direttamente visitors con setState');
-          setVisitors(updatedVisitors);
+        // Forza illuminazione globale dell'elemento
+        const element = document.getElementById(`visitor-${fromUser}`);
+        if (element) {
+          console.log(`📩 [PRIVATE] Forzando classe CSS su elemento ${fromUser}`);
+          element.classList.add('chat-button-notification');
           
-          // DEBUG: forza un altro aggiornamento dopo un breve ritardo
+          // Rimuovi la classe dopo alcuni secondi
           setTimeout(() => {
-            console.log('📩 [PRIVATE] Forzo un ulteriore aggiornamento visitors');
-            setVisitors(current => {
-              console.log('📩 [PRIVATE] Stato attuale visitors:', 
-                current.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
-              return [...current]; // ritorna una nuova copia per forzare il re-render
-            });
-          }, 100);
+            element.classList.remove('chat-button-notification');
+          }, 5000);
         }
         
         // Suona la notifica

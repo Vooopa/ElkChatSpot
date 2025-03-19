@@ -355,20 +355,16 @@ ${entryCode}
       });
       
       if (recipientSocketId) {
-        // Send to recipient
+        // Send to recipient with notification flag
         io.to(recipientSocketId).emit("chat:private", {
           ...completeMessage,
-          hasNotification: true // Aggiunto flag speciale per attivare le notifiche
+          isNotification: true // Flag speciale per forzare la notifica
         });
         
-        // Invia un evento specifico per conteggiare i messaggi non letti
-        io.to(recipientSocketId).emit("notification:unread", {
-          from: message.nickname,
-          count: 1,
-          timestamp: new Date().toISOString()
-        });
+        // Log notification details
+        console.log(`💥 NOTIFICA INVIATA A ${recipientSocketId} DA ${message.nickname}`);
         
-        // Also send back to sender
+        // Also send back to sender (without notification flag)
         socket.emit("chat:private", completeMessage);
       } else {
         // Special case: try a broader search by using the room broadcast
