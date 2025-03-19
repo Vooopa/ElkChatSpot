@@ -2,9 +2,10 @@ import { useState, FormEvent } from "react";
 
 interface NicknameModalProps {
   onSetNickname: (nickname: string) => void;
+  error?: string;
 }
 
-const NicknameModal = ({ onSetNickname }: NicknameModalProps) => {
+const NicknameModal = ({ onSetNickname, error }: NicknameModalProps) => {
   const [nickname, setNickname] = useState("");
 
   const handleSubmit = (e: FormEvent) => {
@@ -20,6 +21,12 @@ const NicknameModal = ({ onSetNickname }: NicknameModalProps) => {
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Welcome to the Chat</h2>
         <p className="text-gray-600 mb-4">Please enter a nickname to start chatting in this room.</p>
         
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+            {error}
+          </div>
+        )}
+        
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
@@ -28,7 +35,7 @@ const NicknameModal = ({ onSetNickname }: NicknameModalProps) => {
               id="nickname" 
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" 
+              className={`w-full rounded-lg border ${error ? 'border-red-300' : 'border-gray-300'} py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
               placeholder="Enter your nickname"
               required
             />

@@ -62,6 +62,15 @@ ${entryCode}
       if (currentRoom) {
         await leaveRoom(currentRoom, userNickname || "Anonymous", isWebpageVisitor);
       }
+      
+      // Check if the nickname is already in use
+      if (storage.isNicknameInUse(roomId, nickname)) {
+        // Notify user that the nickname is already taken
+        socket.emit("error:nickname", { 
+          message: "This nickname is already in use. Please choose another one."
+        });
+        return;
+      }
 
       currentRoom = roomId;
       userNickname = nickname;
@@ -71,7 +80,15 @@ ${entryCode}
       socket.join(roomId);
       
       // Add user to the room in storage
-      storage.addUserToRoom(roomId, socket.id, nickname);
+      const success = storage.addUserToRoom(roomId, socket.id, nickname);
+      
+      if (!success) {
+        // This shouldn't happen since we checked above, but just to be safe
+        socket.emit("error:nickname", { 
+          message: "This nickname is already in use. Please choose another one."
+        });
+        return;
+      }
       
       // Get current user count in the room
       const roomUsers = storage.getRoomUsers(roomId);
@@ -105,30 +122,53 @@ ${entryCode}
         await leaveRoom(currentRoom, userNickname || "Anonymous", isWebpageVisitor);
       }
       
-      // Add visitor to the webpage room
-      const roomId = storage.addWebpageVisitor(url, socket.id, nickname);
+      // Create a room ID based on the normalized URL
+      const normalizedUrl = normalizeUrl(url);
+      let roomId = `url-${normalizedUrl}`;
       
-      currentRoom = roomId;
+      // Check if the nickname is already in use in this room
+      if (storage.isNicknameInUse(roomId, nickname)) {
+        // Notify user that the nickname is already taken
+        socket.emit("error:nickname", { 
+          message: "This nickname is already in use. Please choose another one."
+        });
+        return;
+      }
+      
+      // Add visitor to the webpage room
+      const addedRoomId = storage.addWebpageVisitor(url, socket.id, nickname);
+      
+      if (addedRoomId === null) {
+        // This shouldn't happen since we checked above, but just to be safe
+        socket.emit("error:nickname", { 
+          message: "This nickname is already in use. Please choose another one."
+        });
+        return;
+      }
+      
+      // We've confirmed the roomId is valid
+      roomId = addedRoomId;
+      currentRoom = addedRoomId;
       userNickname = nickname;
       isWebpageVisitor = true;
       
-      // Join the Socket.IO room
-      socket.join(roomId);
+      // Join the Socket.IO room with a non-null roomId
+      socket.join(addedRoomId);
       
       // If pageTitle was provided, update the room info
       if (pageTitle && pageTitle.trim()) {
-        const room = storage.getRoom(roomId);
+        const room = storage.getRoom(addedRoomId);
         if (room) {
           room.title = pageTitle;
         }
       }
       
       // Get all visitors for this webpage
-      const visitors = storage.getWebpageVisitors(roomId);
+      const visitors = storage.getWebpageVisitors(addedRoomId);
       
       // Notify everyone that a new user joined
       const joinMessage: Message = {
-        roomId,
+        roomId: addedRoomId,
         nickname,
         text: `${nickname} is now browsing this page`,
         timestamp: new Date().toISOString(),
@@ -136,18 +176,18 @@ ${entryCode}
       };
       
       // Emit visitor joined event to all clients in the room
-      io.to(roomId).emit("visitor:joined", joinMessage);
+      io.to(addedRoomId).emit("visitor:joined", joinMessage);
       
       // Send current visitor count
-      io.to(roomId).emit("webpage:userCount", visitors.size);
+      io.to(addedRoomId).emit("webpage:userCount", visitors.size);
       
       // Send list of all current visitors to the newly joined user
       socket.emit("webpage:visitors", Array.from(visitors.values()));
       
       // Send room details including the original URL
-      const room = storage.getRoom(roomId);
+      const room = storage.getRoom(addedRoomId);
       socket.emit("webpage:room", {
-        roomId,
+        roomId: addedRoomId,
         url: room?.url || url,
         title: room?.title || pageTitle || "",
         visitorCount: visitors.size
@@ -188,12 +228,63 @@ ${entryCode}
       
       const completeMessage: Message = {
         ...message,
-        type: MessageType.USER_MESSAGE,
-        timestamp: new Date().toISOString()
+        type: message.type || MessageType.USER_MESSAGE,
+        timestamp: new Date().toISOString(),
+        senderSocketId: socket.id
       };
       
-      // Broadcast the message to everyone in the room
-      io.to(message.roomId).emit("chat:message", completeMessage);
+      // Check if this is a private message
+      if (message.type === MessageType.PRIVATE_MESSAGE && message.recipient) {
+        // Find the recipient's socket ID
+        const recipientSocketId = storage.getSocketIdByNickname(message.roomId, message.recipient);
+        
+        if (recipientSocketId) {
+          // Send to recipient
+          io.to(recipientSocketId).emit("chat:private", completeMessage);
+          // Also send back to sender so they can see their own message
+          socket.emit("chat:private", completeMessage);
+        } else {
+          // Send an error back to the sender
+          socket.emit("error:message", {
+            message: `User '${message.recipient}' was not found or is offline.`
+          });
+        }
+      } else {
+        // Regular message - broadcast to everyone in the room
+        io.to(message.roomId).emit("chat:message", completeMessage);
+      }
+    });
+    
+    // Handle private message
+    socket.on("chat:private", (message: Message) => {
+      if (!message.roomId || !message.text || !message.nickname || !message.recipient) return;
+      
+      // Update activity timestamp if this is a webpage visitor
+      if (isWebpageVisitor && currentRoom) {
+        storage.updateWebpageVisitorActivity(currentRoom, socket.id);
+      }
+      
+      const completeMessage: Message = {
+        ...message,
+        type: MessageType.PRIVATE_MESSAGE,
+        timestamp: new Date().toISOString(),
+        senderSocketId: socket.id
+      };
+      
+      // Find the recipient's socket ID
+      const recipientSocketId = storage.getSocketIdByNickname(message.roomId, message.recipient);
+      
+      if (recipientSocketId) {
+        // Send to recipient
+        io.to(recipientSocketId).emit("chat:private", completeMessage);
+        // Also send back to sender so they can see their own message
+        socket.emit("chat:private", completeMessage);
+      } else {
+        // Send an error back to the sender
+        socket.emit("error:message", {
+          message: `User '${message.recipient}' was not found or is offline.`
+        });
+      }
     });
 
     // Handle disconnection
