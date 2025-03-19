@@ -124,6 +124,8 @@ ${entryCode}
     socket.on("webpage:join", async ({ url, nickname, pageTitle }) => {
       if (!url || !nickname) return;
       
+      console.log(`User ${nickname} attempting to join webpage: ${url}`);
+      
       // Leave previous room if exists
       if (currentRoom) {
         await leaveRoom(currentRoom, userNickname || "Anonymous", isWebpageVisitor);
@@ -133,8 +135,11 @@ ${entryCode}
       const normalizedUrl = normalizeUrl(url);
       let roomId = `url-${normalizedUrl}`;
       
+      console.log(`Normalized URL: ${normalizedUrl}, Room ID: ${roomId}`);
+      
       // Check if the nickname is already in use in this room
       if (storage.isNicknameInUse(roomId, nickname)) {
+        console.log(`Nickname ${nickname} is already in use in room ${roomId}`);
         // Notify user that the nickname is already taken
         socket.emit("error:nickname", { 
           message: "This nickname is already in use. Please choose another one."
@@ -146,12 +151,15 @@ ${entryCode}
       const addedRoomId = storage.addWebpageVisitor(url, socket.id, nickname);
       
       if (addedRoomId === null) {
+        console.log(`Failed to add visitor ${nickname} to room for ${url}`);
         // This shouldn't happen since we checked above, but just to be safe
         socket.emit("error:nickname", { 
           message: "This nickname is already in use. Please choose another one."
         });
         return;
       }
+      
+      console.log(`Successfully added visitor ${nickname} (${socket.id}) to room ${addedRoomId}`);
       
       // We've confirmed the roomId is valid
       roomId = addedRoomId;
@@ -162,11 +170,18 @@ ${entryCode}
       // Join the Socket.IO room with a non-null roomId
       socket.join(addedRoomId);
       
+      // Log all users in this room
+      const currentRoom = storage.getRoom(addedRoomId);
+      if (currentRoom && currentRoom.visitors) {
+        console.log(`Current visitors in room ${addedRoomId}:`, 
+          Array.from(currentRoom.visitors.values()).map(v => `${v.nickname} (${v.socketId})`).join(', '));
+      }
+      
       // If pageTitle was provided, update the room info
       if (pageTitle && pageTitle.trim()) {
-        const room = storage.getRoom(addedRoomId);
-        if (room) {
-          room.title = pageTitle;
+        const roomData = storage.getRoom(addedRoomId);
+        if (roomData) {
+          roomData.title = pageTitle;
         }
       }
       
@@ -192,7 +207,6 @@ ${entryCode}
       socket.emit("webpage:visitors", Array.from(visitors.values()));
       
       // Send room details including the original URL
-      const room = storage.getRoom(addedRoomId);
       socket.emit("webpage:room", {
         roomId: addedRoomId,
         url: room?.url || url,
