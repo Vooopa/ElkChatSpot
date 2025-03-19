@@ -1,83 +1,93 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { useLocation } from "wouter";
+import { io, Socket } from "socket.io-client";
 import ChatApp from "@/components/chat/ChatApp";
-import { useSocket, initializeSocket } from "@/lib/socket";
 import { Message, MessageType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
+// Main ChatRoom component - now simplified based on the working demo
 const ChatRoom = () => {
   const [location] = useLocation();
-  const socket = useSocket();
   const { toast } = useToast();
+  
+  // Socket and connection state
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  
+  // User and message state
   const [nickname, setNickname] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [privateMessages, setPrivateMessages] = useState<Message[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
+  
+  // UI state
   const [showNicknameModal, setShowNicknameModal] = useState(true);
   const [nicknameError, setNicknameError] = useState<string | undefined>();
   const [roomInfo, setRoomInfo] = useState("");
   const [joining, setJoining] = useState(false);
 
-  // Room is current URL path (or 'lobby' if on homepage)
-  // Strip any initial "chat/" from the path if present
+  // Parse the room ID from the URL or use 'lobby' as default
   const path = location.startsWith("/chat/") ? location.substring(6) : location.substring(1);
   const roomId = path || "lobby";
 
+  // Initialize the socket connection
   useEffect(() => {
-    console.log("========= SETTING UP SOCKET CONNECTION =========");
+    console.log("Setting up socket connection for ChatRoom");
     
-    // First, ensure we have a fresh socket connection
-    const currentSocket = initializeSocket();
+    // Create a new socket with connection options
+    const newSocket = io(window.location.origin, {
+      path: "/api/socket.io",
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      timeout: 20000,
+    });
     
-    // Set up debug state
-    console.log(`Room ID: ${roomId}`);
-    console.log(`Socket ID: ${currentSocket.id}`);
-    console.log(`Initial socket connected: ${currentSocket.connected}`);
-    setIsConnected(currentSocket.connected);
-    
-    const onConnect = () => {
-      console.log("Socket connected event fired");
+    // Set up event listeners for connection status
+    newSocket.on("connect", () => {
+      console.log("Socket connected with ID:", newSocket.id);
       setIsConnected(true);
       setRoomInfo(`${window.location.host}/chat/${roomId}`);
       
       // If we already have a nickname and we were trying to join, retry join
       if (nickname && joining) {
         console.log(`Retrying join for ${nickname} to room ${roomId}`);
-        currentSocket.emit("user:join", { roomId, nickname });
+        newSocket.emit("user:join", { roomId, nickname });
       }
-    };
+    });
 
-    const onDisconnect = () => {
+    newSocket.on("disconnect", () => {
       console.log("Socket disconnected");
       setIsConnected(false);
-    };
+    });
 
-    const onRoomJoin = (data: { count: number }) => {
+    // Room events
+    newSocket.on("room:join", (data: { count: number }) => {
       console.log(`Joined room with ${data.count} users`);
       setOnlineCount(data.count);
       setJoining(false);
       
-      // Show success toast
       toast({
         title: "Joined Successfully",
         description: `You've joined the chat room as ${nickname}`,
         variant: "default"
       });
-    };
+    });
 
-    const onUserCount = (count: number) => {
+    newSocket.on("user:count", (count: number) => {
       console.log(`User count updated: ${count}`);
       setOnlineCount(count);
-    };
+    });
 
-    const onChatMessage = (message: Message) => {
-      console.log(`Chat message received: ${message.text}`);
+    // Message events
+    newSocket.on("chat:message", (message: Message) => {
+      console.log(`Chat message received:`, message);
       setMessages((prev) => [...prev, message]);
-    };
+    });
     
-    const onPrivateMessage = (message: Message) => {
-      console.log(`Private message received: ${message.text}`);
+    newSocket.on("chat:private", (message: Message) => {
+      console.log(`Private message received:`, message);
       setPrivateMessages((prev) => [...prev, message]);
       setMessages((prev) => [...prev, message]);
       
@@ -88,20 +98,22 @@ const ChatRoom = () => {
           variant: "default"
         });
       }
-    };
+    });
 
-    const onUserJoined = (message: Message) => {
-      console.log(`User joined: ${message.nickname}`);
+    // User presence events
+    newSocket.on("user:joined", (message: Message) => {
+      console.log(`User joined:`, message);
       setMessages((prev) => [...prev, message]);
-    };
+    });
 
-    const onUserLeft = (message: Message) => {
-      console.log(`User left: ${message.nickname}`);
+    newSocket.on("user:left", (message: Message) => {
+      console.log(`User left:`, message);
       setMessages((prev) => [...prev, message]);
-    };
+    });
     
-    const onNicknameError = (data: { message: string }) => {
-      console.error(`Nickname error: ${data.message}`);
+    // Error events
+    newSocket.on("error:nickname", (data: { message: string }) => {
+      console.error(`Nickname error:`, data);
       setNicknameError(data.message);
       setShowNicknameModal(true);
       setJoining(false);
@@ -111,72 +123,48 @@ const ChatRoom = () => {
         description: data.message,
         variant: "destructive"
       });
-    };
+    });
     
-    const onMessageError = (data: { message: string }) => {
-      console.error(`Message error: ${data.message}`);
+    newSocket.on("error:message", (data: { message: string }) => {
+      console.error(`Message error:`, data);
       toast({
         title: "Message Error",
         description: data.message,
         variant: "destructive"
       });
-    };
+    });
 
-    // Connect event listeners
-    currentSocket.on("connect", onConnect);
-    currentSocket.on("disconnect", onDisconnect);
-    currentSocket.on("room:join", onRoomJoin);
-    currentSocket.on("user:count", onUserCount);
-    currentSocket.on("chat:message", onChatMessage);
-    currentSocket.on("chat:private", onPrivateMessage);
-    currentSocket.on("user:joined", onUserJoined);
-    currentSocket.on("user:left", onUserLeft);
-    currentSocket.on("error:nickname", onNicknameError);
-    currentSocket.on("error:message", onMessageError);
+    // Save socket to state
+    setSocket(newSocket);
 
-    // Clean up event listeners
+    // Clean up on unmount
     return () => {
-      currentSocket.off("connect", onConnect);
-      currentSocket.off("disconnect", onDisconnect);
-      currentSocket.off("room:join", onRoomJoin);
-      currentSocket.off("user:count", onUserCount);
-      currentSocket.off("chat:message", onChatMessage);
-      currentSocket.off("chat:private", onPrivateMessage);
-      currentSocket.off("user:joined", onUserJoined);
-      currentSocket.off("user:left", onUserLeft);
-      currentSocket.off("error:nickname", onNicknameError);
-      currentSocket.off("error:message", onMessageError);
+      console.log("Cleaning up socket listeners");
+      newSocket.disconnect();
     };
   }, [roomId, nickname, joining, toast]);
 
+  // Handle joining a room with a nickname
   const handleSetNickname = (name: string) => {
     if (!name.trim()) return;
     
-    // Get the current socket instance
-    const currentSocket = initializeSocket();
+    if (!socket) {
+      setNicknameError("Socket not initialized yet. Please try again.");
+      return;
+    }
     
     console.log(`Attempting to join room: ${roomId} with nickname: ${name}`);
-    console.log(`Socket connected: ${currentSocket.connected}`);
     
     setNickname(name);
     setNicknameError(undefined);
     setShowNicknameModal(false);
     setJoining(true);
     
-    // If socket is connected, emit join event
-    if (currentSocket.connected) {
-      console.log(`Socket is connected, emitting user:join event to room: ${roomId}`);
-      currentSocket.emit("user:join", { roomId, nickname: name });
-    } else {
-      // If socket is not connected, connect it and try again
-      console.log("Socket not connected, connecting now...");
-      currentSocket.connect();
-      
-      // After connecting, we'll join in the onConnect handler
-      // since we set joining = true and have the nickname
-    }
+    // Emit join event
+    socket.emit("user:join", { roomId, nickname: name });
   };
 
+  // Handle sending a chat message
   const handleSendMessage = (text: string) => {
     if (!socket || !isConnected || !nickname || !text.trim()) return;
     
@@ -214,6 +202,7 @@ const ChatRoom = () => {
     });
   };
   
+  // Handle sending a private message
   const sendPrivateMessage = (recipient: string, text: string) => {
     if (!socket || !isConnected || !nickname || !text.trim()) return;
     
@@ -239,14 +228,14 @@ const ChatRoom = () => {
     );
   }
 
-  // Show the full ChatApp component
+  // Render the UI
   return (
     <div>
       {showNicknameModal ? (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Welcome to the Chat</h2>
-            <p className="text-gray-600 mb-4">Please enter a nickname to start chatting in this room.</p>
+            <p className="text-gray-600 mb-4">Please enter a nickname to start chatting in room: <span className="font-semibold">{roomId}</span></p>
             
             {nicknameError && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
@@ -273,8 +262,9 @@ const ChatRoom = () => {
               <button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                disabled={!socket || !isConnected}
               >
-                Join Chat
+                {socket && isConnected ? "Join Chat" : "Connecting..."}
               </button>
             </form>
           </div>
