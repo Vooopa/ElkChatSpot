@@ -12,61 +12,85 @@
   }
 }
 
+/* Base animation keyframes */
 @keyframes pulseChat {
   0%, 100% {
     transform: scale(1);
     opacity: 1;
-    box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7);
   }
   
   50% {
-    transform: scale(1.1);
-    opacity: 0.9;
-    box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+    transform: scale(1.2);
+    opacity: 0.8;
   }
 }
 
-@keyframes border-pulse {
-  0% {
-    border-color: #f87171;
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
   }
   50% {
-    border-color: #fef2f2;
-  }
-  100% {
-    border-color: #f87171;
+    opacity: 0.2;
   }
 }
 
-.chat-button-notification {
-  animation: pulseChat 1s infinite, border-pulse 1s infinite;
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 10px 2px rgba(239, 68, 68, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 25px 8px rgba(239, 68, 68, 0.4);
+  }
+}
+
+/* Notification styles */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background-color: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  animation: pulseChat 1s infinite;
+  border: 2px solid white;
+  z-index: 10;
+}
+
+.has-notification {
   position: relative;
+  animation: shake 0.5s infinite, glow 1.5s infinite !important;
   background-color: #ef4444 !important;
   color: white !important;
+  border: 2px solid yellow !important;
+  font-weight: bold !important;
 }
 
-.chat-button-notification::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  bottom: -2px;
-  left: -2px;
-  z-index: -1;
-  border-radius: inherit;
-  background-image: linear-gradient(45deg, #f87171, #fef2f2, #f87171);
-  background-size: 200% 200%;
-  animation: gradient-animation 1s ease infinite;
-}
-
-@keyframes gradient-animation {
-  0% {
-    background-position: 0% 0%;
-  }
-  50% {
-    background-position: 100% 100%;
-  }
-  100% {
-    background-position: 0% 0%;
-  }
+.flash-notification {
+  animation: blink 0.5s infinite !important;
+  background-color: #ef4444 !important;
+  color: white !important;
+  border: 3px solid yellow !important;
+  box-shadow: 0 0 15px 5px rgba(239, 68, 68, 0.6) !important;
 }

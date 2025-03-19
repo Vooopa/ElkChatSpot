@@ -261,16 +261,56 @@ const WebpageRoom = () => {
           });
         });
         
-        // Forza illuminazione globale dell'elemento
-        const element = document.getElementById(`visitor-${fromUser}`);
-        if (element) {
-          console.log(`📩 [PRIVATE] Forzando classe CSS su elemento ${fromUser}`);
-          element.classList.add('chat-button-notification');
+        // Approccio JavaScript puro per forzare l'aggiornamento visivo
+        // Questo dovrebbe funzionare anche se React non aggiorna correttamente l'UI
+        try {
+          console.log(`📩 [PRIVATE] Tentativo di manipolare direttamente il DOM per ${fromUser}`);
           
-          // Rimuovi la classe dopo alcuni secondi
-          setTimeout(() => {
-            element.classList.remove('chat-button-notification');
-          }, 5000);
+          // Trova l'elemento nella lista visitatori
+          const visitorElement = document.getElementById(`visitor-${fromUser}`);
+          if (visitorElement) {
+            console.log(`📩 [PRIVATE] Elemento visitatore trovato, aggiungo effetti visivi`);
+            visitorElement.classList.add('flash-notification');
+            
+            // Per sicurezza rimuoviamo dopo un po'
+            setTimeout(() => visitorElement.classList.remove('flash-notification'), 10000);
+          } else {
+            console.log(`📩 [PRIVATE] Elemento visitatore non trovato: visitor-${fromUser}`);
+          }
+          
+          // Trova il pulsante della chat
+          const chatButtons = document.querySelectorAll('button');
+          let chatButton = null;
+          
+          // Cerca tra tutti i pulsanti quello relativo all'utente che ha inviato il messaggio
+          chatButtons.forEach(button => {
+            if (button.title && button.title.includes(fromUser)) {
+              chatButton = button;
+            }
+          });
+          
+          if (chatButton) {
+            console.log(`📩 [PRIVATE] Pulsante chat trovato, aggiungo effetti visivi`);
+            chatButton.classList.add('has-notification');
+            
+            // Aggiungi un badge di notifica con il contatore
+            const badge = document.createElement('span');
+            badge.className = 'notification-badge';
+            badge.textContent = '1';
+            chatButton.appendChild(badge);
+            
+            // Rimuovi dopo un po'
+            setTimeout(() => {
+              chatButton.classList.remove('has-notification');
+              if (badge.parentNode) {
+                badge.parentNode.removeChild(badge);
+              }
+            }, 10000);
+          } else {
+            console.log(`📩 [PRIVATE] Pulsante chat non trovato per ${fromUser}`);
+          }
+        } catch (error) {
+          console.error('Errore durante la manipolazione del DOM:', error);
         }
         
         // Suona la notifica
