@@ -58,7 +58,10 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
         </div>
       )}
 
-      {messages.map((message, index) => {
+      {messages
+        // Filter out private messages from the public chat area
+        .filter(msg => msg.type !== MessageType.PRIVATE_MESSAGE)
+        .map((message, index) => {
         // Different rendering based on message type
         if (message.type === MessageType.SYSTEM) {
           return (
