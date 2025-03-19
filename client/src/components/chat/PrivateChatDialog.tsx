@@ -48,46 +48,64 @@ const PrivateChatDialog = ({
     }
   }, [isOpen, recipientName, chatHistory]);
 
-  // Listen for private messages
+  // Set up a single socket event listener for the entire application
   useEffect(() => {
     if (!socket) return;
+    
+    // Create a stable reference to the current values
+    const currentRecipient = recipientName;
+    const current = currentUser;
+    
+    console.log("🔵 Setting up private message listener with", {
+      currentUser: current,
+      recipientName: currentRecipient
+    });
 
-    const handlePrivateMessage = (message: Message) => {
-      console.log("Received private message:", message);
+    function handlePrivateMessage(message: Message) {
+      console.log("🔵 Received private message in dialog:", message);
       
-      // Only process messages between the current user and the recipient
+      // Determine if this message is between the current user and recipient
+      const isFromCurrentUser = message.nickname === current;
+      const isFromRecipient = message.nickname === currentRecipient;
+      const isToCurrentUser = message.recipient === current;
+      const isToRecipient = message.recipient === currentRecipient;
+      
       const isRelevantMessage = 
-        (message.nickname === currentUser && message.recipient === recipientName) ||
-        (message.nickname === recipientName && message.recipient === currentUser);
+        (isFromCurrentUser && isToRecipient) ||
+        (isFromRecipient && isToCurrentUser);
+      
+      console.log("🔵 Message relevance:", {
+        isFromCurrentUser,
+        isFromRecipient,
+        isToCurrentUser,
+        isToRecipient,
+        isRelevantMessage
+      });
       
       if (isRelevantMessage) {
-        console.log("Adding relevant message to chat", {
-          from: message.nickname,
-          to: message.recipient,
-          currentDialog: recipientName
-        });
+        console.log("🔵 Adding message to conversation with", currentRecipient);
         
-        // Add to current messages unconditionally if the message is relevant
-        setMessages(prev => [...prev, message]);
+        // Add to messages state
+        setMessages(prevMessages => [...prevMessages, message]);
         
-        // Add to chat history
-        setChatHistory(prev => {
-          const otherUser = message.nickname === currentUser ? 
-            (message.recipient || "") : (message.nickname || "");
-          if (otherUser) {
-            const prevMessages = prev.get(otherUser) || [];
-            const newMap = new Map(prev);
-            newMap.set(otherUser, [...prevMessages, message]);
-            return newMap;
-          }
-          return prev;
+        // Store in chat history
+        setChatHistory(prevHistory => {
+          const otherUser = isFromCurrentUser ? 
+            message.recipient! : message.nickname!;
+            
+          const prevMessages = prevHistory.get(otherUser) || [];
+          const newHistory = new Map(prevHistory);
+          newHistory.set(otherUser, [...prevMessages, message]);
+          
+          return newHistory;
         });
       }
-    };
+    }
 
     socket.on("chat:private", handlePrivateMessage);
     
     return () => {
+      console.log("🔵 Removing private message listener");
       socket.off("chat:private", handlePrivateMessage);
     };
   }, [socket, currentUser, recipientName]);
