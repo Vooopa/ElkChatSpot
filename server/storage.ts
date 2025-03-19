@@ -13,13 +13,15 @@ export interface IStorage {
   getRooms(): Map<string, ChatRoom>;
   getRoom(roomId: string): ChatRoom | undefined;
   getRoomByUrl(url: string): ChatRoom | undefined;
-  addUserToRoom(roomId: string, socketId: string, nickname: string): void;
+  addUserToRoom(roomId: string, socketId: string, nickname: string): boolean; // Returns false if nickname is already in use
   removeUserFromRoom(roomId: string, socketId: string): void;
   getRoomUsers(roomId: string): Map<string, string>;
   getRoomUserCount(roomId: string): number;
+  isNicknameInUse(roomId: string, nickname: string): boolean;
+  getSocketIdByNickname(roomId: string, nickname: string): string | undefined;
   
   // Webpage visitor methods
-  addWebpageVisitor(url: string, socketId: string, nickname: string): string; // Returns roomId
+  addWebpageVisitor(url: string, socketId: string, nickname: string): string | null; // Returns roomId or null if nickname is in use
   removeWebpageVisitor(roomId: string, socketId: string): void;
   getWebpageVisitors(roomId: string): Map<string, WebpageVisitor>;
   updateWebpageVisitorStatus(roomId: string, socketId: string, status: UserStatus): void;
@@ -83,13 +85,19 @@ export class MemStorage implements IStorage {
     );
   }
 
-  addUserToRoom(roomId: string, socketId: string, nickname: string): void {
+  addUserToRoom(roomId: string, socketId: string, nickname: string): boolean {
     if (!this.rooms.has(roomId)) {
       this.createRoom(roomId);
     }
     
+    // Check if the nickname is already in use in this room
+    if (this.isNicknameInUse(roomId, nickname)) {
+      return false;
+    }
+    
     const room = this.rooms.get(roomId)!;
     room.users.set(socketId, nickname);
+    return true;
   }
 
   removeUserFromRoom(roomId: string, socketId: string): void {
@@ -119,9 +127,59 @@ export class MemStorage implements IStorage {
     }
     return room.users.size;
   }
+  
+  isNicknameInUse(roomId: string, nickname: string): boolean {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return false;
+    }
+    
+    // Check in regular users
+    for (const [_, userName] of room.users.entries()) {
+      if (userName.toLowerCase() === nickname.toLowerCase()) {
+        return true;
+      }
+    }
+    
+    // Check in webpage visitors for completeness
+    if (room.visitors) {
+      for (const visitor of room.visitors.values()) {
+        if (visitor.nickname.toLowerCase() === nickname.toLowerCase()) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  getSocketIdByNickname(roomId: string, nickname: string): string | undefined {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return undefined;
+    }
+    
+    // Check in regular users first
+    for (const [socketId, userName] of room.users.entries()) {
+      if (userName.toLowerCase() === nickname.toLowerCase()) {
+        return socketId;
+      }
+    }
+    
+    // Also check in webpage visitors
+    if (room.visitors) {
+      for (const [socketId, visitor] of room.visitors.entries()) {
+        if (visitor.nickname.toLowerCase() === nickname.toLowerCase()) {
+          return socketId;
+        }
+      }
+    }
+    
+    return undefined;
+  }
 
   // Webpage visitor methods
-  addWebpageVisitor(url: string, socketId: string, nickname: string): string {
+  addWebpageVisitor(url: string, socketId: string, nickname: string): string | null {
     // Create a room ID based on the normalized URL
     const normalizedUrl = normalizeUrl(url);
     let roomId = `url-${normalizedUrl}`;
@@ -133,6 +191,11 @@ export class MemStorage implements IStorage {
       // Create a new room for this URL
       this.createRoom(roomId, url);
       room = this.getRoom(roomId)!;
+    }
+    
+    // Check if the nickname is already in use in this room
+    if (this.isNicknameInUse(roomId, nickname)) {
+      return null; // Nickname already in use
     }
     
     // Create the visitor record
