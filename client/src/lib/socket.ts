@@ -13,6 +13,16 @@ export const initializeSocket = (): Socket => {
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
+      transports: ['websocket', 'polling'] // Explicitly set transports
+    });
+    
+    // Add debug logging
+    socket.on('connect', () => {
+      console.log('Socket connected with ID:', socket?.id);
+    });
+    
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
     });
   }
   
