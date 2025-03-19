@@ -135,7 +135,9 @@ export class MemStorage implements IStorage {
     }
     
     // Check in regular users
-    for (const [_, userName] of room.users.entries()) {
+    const usersArray = Array.from(room.users.entries());
+    for (let i = 0; i < usersArray.length; i++) {
+      const [_, userName] = usersArray[i];
       if (userName.toLowerCase() === nickname.toLowerCase()) {
         return true;
       }
@@ -143,7 +145,9 @@ export class MemStorage implements IStorage {
     
     // Check in webpage visitors for completeness
     if (room.visitors) {
-      for (const visitor of room.visitors.values()) {
+      const visitorsArray = Array.from(room.visitors.values());
+      for (let i = 0; i < visitorsArray.length; i++) {
+        const visitor = visitorsArray[i];
         if (visitor.nickname.toLowerCase() === nickname.toLowerCase()) {
           return true;
         }
@@ -160,7 +164,9 @@ export class MemStorage implements IStorage {
     }
     
     // Check in regular users first
-    for (const [socketId, userName] of room.users.entries()) {
+    const usersArray = Array.from(room.users.entries());
+    for (let i = 0; i < usersArray.length; i++) {
+      const [socketId, userName] = usersArray[i];
       if (userName.toLowerCase() === nickname.toLowerCase()) {
         return socketId;
       }
@@ -168,7 +174,9 @@ export class MemStorage implements IStorage {
     
     // Also check in webpage visitors
     if (room.visitors) {
-      for (const [socketId, visitor] of room.visitors.entries()) {
+      const visitorsArray = Array.from(room.visitors.entries());
+      for (let i = 0; i < visitorsArray.length; i++) {
+        const [socketId, visitor] = visitorsArray[i];
         if (visitor.nickname.toLowerCase() === nickname.toLowerCase()) {
           return socketId;
         }

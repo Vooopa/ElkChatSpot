@@ -11,14 +11,18 @@ import MessageArea from "@/components/chat/MessageArea";
 import Header from "@/components/chat/Header";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 const WebpageRoom = () => {
   const params = useParams();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [showUrlInput, setShowUrlInput] = useState(true);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
+  const [nicknameError, setNicknameError] = useState<string | undefined>();
   const [nickname, setNickname] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [privateMessages, setPrivateMessages] = useState<Message[]>([]);
   const [visitors, setVisitors] = useState<WebpageVisitor[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [url, setUrl] = useState<string>("");
@@ -48,7 +52,7 @@ const WebpageRoom = () => {
 
   const handleSetNickname = (newNickname: string) => {
     setNickname(newNickname);
-    setShowNicknameModal(false);
+    setNicknameError(undefined);
     
     // Initialize socket connection after nickname is set
     const socket = getSocket() || initializeSocket();
@@ -71,6 +75,19 @@ const WebpageRoom = () => {
       setIsConnected(false);
     });
 
+    socket.on("error:nickname", (data: { message: string }) => {
+      setNicknameError(data.message);
+      setShowNicknameModal(true);
+    });
+
+    socket.on("error:message", (data: { message: string }) => {
+      toast({
+        title: "Message Error",
+        description: data.message,
+        variant: "destructive"
+      });
+    });
+
     socket.on("webpage:room", (data: { roomId: string, url: string, title: string }) => {
       setRoomId(data.roomId);
       // Update URL route with room ID
@@ -82,15 +99,19 @@ const WebpageRoom = () => {
     });
 
     socket.on("chat:message", onChatMessage);
+    socket.on("chat:private", onPrivateMessage);
     socket.on("visitor:joined", onVisitorJoined);
     socket.on("visitor:left", onVisitorLeft);
 
     return () => {
       socket.off("connect");
       socket.off("disconnect");
+      socket.off("error:nickname");
+      socket.off("error:message");
       socket.off("webpage:room");
       socket.off("webpage:visitors");
       socket.off("chat:message");
+      socket.off("chat:private");
       socket.off("visitor:joined");
       socket.off("visitor:left");
     };
@@ -99,6 +120,32 @@ const WebpageRoom = () => {
   const handleSendMessage = (text: string) => {
     if (!text.trim() || !roomId) return;
     
+    // Check if this is a private message
+    const privateMessagePrefix = "/pm ";
+    if (text.startsWith(privateMessagePrefix)) {
+      const textWithoutPrefix = text.substring(privateMessagePrefix.length);
+      const firstSpaceIndex = textWithoutPrefix.indexOf(" ");
+      
+      if (firstSpaceIndex > 0) {
+        const recipient = textWithoutPrefix.substring(0, firstSpaceIndex);
+        const privateText = textWithoutPrefix.substring(firstSpaceIndex + 1);
+        
+        if (privateText.trim()) {
+          sendPrivateMessage(recipient, privateText);
+          return;
+        }
+      }
+      
+      // Invalid format, show toast message
+      toast({
+        title: "Invalid Command",
+        description: "To send a private message use: /pm username message",
+        variant: "default"
+      });
+      return;
+    }
+    
+    // Regular message
     const socket = getSocket();
     if (socket && isConnected) {
       const message: Message = {
@@ -108,6 +155,22 @@ const WebpageRoom = () => {
         nickname
       };
       socket.emit("chat:message", message);
+    }
+  };
+
+  const sendPrivateMessage = (recipient: string, text: string) => {
+    if (!text.trim() || !roomId) return;
+    
+    const socket = getSocket();
+    if (socket && isConnected) {
+      const message: Message = {
+        roomId,
+        text,
+        type: MessageType.PRIVATE_MESSAGE,
+        nickname,
+        recipient
+      };
+      socket.emit("chat:private", message);
     }
   };
 
@@ -138,6 +201,23 @@ const WebpageRoom = () => {
       setMessages(prev => [...prev, message]);
     }
   };
+  
+  const onPrivateMessage = (message: Message) => {
+    if (message.roomId === roomId) {
+      setPrivateMessages(prev => [...prev, message]);
+      // Also add to main message list
+      setMessages(prev => [...prev, message]);
+      
+      // Show a toast if the message is from someone else
+      if (message.nickname !== nickname) {
+        toast({
+          title: `Private message from ${message.nickname}`,
+          description: message.text,
+          variant: "default"
+        });
+      }
+    }
+  };
 
   // Format domain name for display
   const getDomainFromUrl = (urlString: string) => {
@@ -154,7 +234,7 @@ const WebpageRoom = () => {
   }
 
   if (showNicknameModal) {
-    return <NicknameModal onSetNickname={handleSetNickname} />;
+    return <NicknameModal onSetNickname={handleSetNickname} error={nicknameError} />;
   }
 
   const domain = getDomainFromUrl(url);
@@ -190,6 +270,9 @@ const WebpageRoom = () => {
           </div>
           <div className="flex-none p-4 border-t bg-white">
             <MessageInput onSendMessage={handleSendMessage} />
+            <div className="mt-2 text-xs text-gray-500">
+              Tip: To send a private message, use /pm username message
+            </div>
           </div>
         </div>
         
