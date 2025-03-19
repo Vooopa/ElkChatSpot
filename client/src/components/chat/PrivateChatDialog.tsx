@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, FormEvent, useRef } from "react";
 import { X, Send } from "lucide-react";
 import { Message, MessageType } from "@shared/schema";
 import { Socket } from "socket.io-client";
@@ -33,6 +33,7 @@ const PrivateChatDialog = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [chatHistory, setChatHistory] = useState<Map<string, Message[]>>(new Map());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history when the dialog opens
   useEffect(() => {
@@ -52,16 +53,22 @@ const PrivateChatDialog = ({
     if (!socket) return;
 
     const handlePrivateMessage = (message: Message) => {
+      console.log("Received private message:", message);
+      
       // Only process messages between the current user and the recipient
-      if ((message.nickname === currentUser && message.recipient === recipientName) ||
-          (message.nickname === recipientName && message.recipient === currentUser)) {
+      const isRelevantMessage = 
+        (message.nickname === currentUser && message.recipient === recipientName) ||
+        (message.nickname === recipientName && message.recipient === currentUser);
+      
+      if (isRelevantMessage) {
+        console.log("Adding relevant message to chat", {
+          from: message.nickname,
+          to: message.recipient,
+          currentDialog: recipientName
+        });
         
-        // Add to current messages if dialog is open with this recipient
-        if (isOpen && 
-            ((recipientName === message.nickname) || 
-             (recipientName === message.recipient && message.recipient !== undefined))) {
-          setMessages(prev => [...prev, message]);
-        }
+        // Add to current messages unconditionally if the message is relevant
+        setMessages(prev => [...prev, message]);
         
         // Add to chat history
         setChatHistory(prev => {
@@ -83,8 +90,15 @@ const PrivateChatDialog = ({
     return () => {
       socket.off("chat:private", handlePrivateMessage);
     };
-  }, [socket, currentUser, recipientName, isOpen]);
+  }, [socket, currentUser, recipientName]);
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+  
   // Save messages to chat history when the dialog closes
   useEffect(() => {
     if (!isOpen && messages.length > 0 && recipientName) {
@@ -168,6 +182,7 @@ const PrivateChatDialog = ({
                 </div>
               ))
             )}
+            <div ref={messagesEndRef} />
           </div>
         </ScrollArea>
         
