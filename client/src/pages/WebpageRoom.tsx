@@ -90,6 +90,8 @@ const WebpageRoom = () => {
   useEffect(() => {
     if (!socket) return;
     
+    console.log("Setting up webpage event listeners...");
+    
     // Error events
     const handleNicknameError = (data: { message: string }) => {
       console.error("Nickname error:", data.message);
@@ -118,26 +120,83 @@ const WebpageRoom = () => {
       setVisitors(roomVisitors);
     };
     
-    // Register event listeners
-    socket.on("error:nickname", handleNicknameError);
-    socket.on("error:message", handleMessageError);
-    socket.on("webpage:room", handleRoomInfo);
-    socket.on("webpage:visitors", handleVisitorList);
-    socket.on("chat:message", onChatMessage);
-    socket.on("chat:private", onPrivateMessage);
-    socket.on("visitor:joined", onVisitorJoined);
-    socket.on("visitor:left", onVisitorLeft);
+    const handleUserCount = (count: number) => {
+      console.log(`Received user count: ${count}`);
+    };
+    
+    // Register event listeners with debugging
+    socket.on("error:nickname", (data) => {
+      console.log("Received error:nickname event", data);
+      handleNicknameError(data);
+    });
+    
+    socket.on("error:message", (data) => {
+      console.log("Received error:message event", data);
+      handleMessageError(data);
+    });
+    
+    socket.on("webpage:room", (data) => {
+      console.log("Received webpage:room event", data);
+      handleRoomInfo(data);
+    });
+    
+    socket.on("webpage:visitors", (data) => {
+      console.log("Received webpage:visitors event", data);
+      handleVisitorList(data);
+    });
+    
+    socket.on("webpage:userCount", (count) => {
+      console.log("Received webpage:userCount event", count);
+      handleUserCount(count);
+    });
+    
+    socket.on("chat:message", (message) => {
+      console.log("Received chat:message event", message);
+      onChatMessage(message);
+    });
+    
+    socket.on("chat:private", (message) => {
+      console.log("Received chat:private event", message);
+      onPrivateMessage(message);
+    });
+    
+    // Handle visitor events
+    // Note: The server emits "visitor:joined" and "visitor:left" events for webpage visitors
+    socket.on("visitor:joined", (message) => {
+      console.log("Received visitor:joined event", message);
+      onVisitorJoined(message);
+    });
+    
+    socket.on("visitor:left", (message) => {
+      console.log("Received visitor:left event", message);
+      onVisitorLeft(message);
+    });
+    
+    // Also try "user:joined" and "user:left" events as fallbacks
+    socket.on("user:joined", (message) => {
+      console.log("Received user:joined event", message);
+      onVisitorJoined(message);
+    });
+    
+    socket.on("user:left", (message) => {
+      console.log("Received user:left event", message);
+      onVisitorLeft(message);
+    });
     
     // Clean up event listeners
     return () => {
-      socket.off("error:nickname", handleNicknameError);
-      socket.off("error:message", handleMessageError);
-      socket.off("webpage:room", handleRoomInfo);
-      socket.off("webpage:visitors", handleVisitorList);
-      socket.off("chat:message", onChatMessage);
-      socket.off("chat:private", onPrivateMessage);
-      socket.off("visitor:joined", onVisitorJoined);
-      socket.off("visitor:left", onVisitorLeft);
+      console.log("Cleaning up webpage event listeners");
+      socket.off("error:nickname");
+      socket.off("error:message");
+      socket.off("webpage:room");
+      socket.off("webpage:visitors");
+      socket.off("webpage:userCount");
+      socket.off("chat:message");
+      socket.off("chat:private");
+      socket.off("visitor:joined");
+      socket.off("visitor:left");
+      socket.off("user:joined");
+      socket.off("user:left");
     };
   }, [socket, url, toast, setLocation]);
 
@@ -154,6 +213,7 @@ const WebpageRoom = () => {
     }
     
     setNickname(newNickname);
+    setCurrentUser(newNickname); // Set current user to the nickname
     setNicknameError(undefined);
     setShowNicknameModal(false);
     
@@ -167,7 +227,15 @@ const WebpageRoom = () => {
   };
 
   const handleSendMessage = (text: string) => {
-    if (!socket || !isConnected || !nickname || !text.trim() || !roomId) return;
+    if (!socket || !isConnected || !nickname || !text.trim() || !roomId) {
+      console.log("Cannot send message:", {
+        connected: isConnected,
+        hasNickname: !!nickname,
+        hasText: !!text.trim(),
+        hasRoomId: !!roomId
+      });
+      return;
+    }
     
     // Check if this is a private message
     const privateMessagePrefix = "/pm ";
@@ -205,10 +273,25 @@ const WebpageRoom = () => {
     
     console.log("Sending chat message:", message);
     socket.emit("chat:message", message);
+    
+    // Also add message to our local state for immediate feedback
+    const localMessage = {
+      ...message,
+      senderSocketId: socket.id // Add sender ID to identify our own messages
+    };
+    setMessages(prev => [...prev, localMessage]);
   };
 
   const sendPrivateMessage = (recipient: string, text: string) => {
-    if (!socket || !isConnected || !nickname || !text.trim() || !roomId) return;
+    if (!socket || !isConnected || !nickname || !text.trim() || !roomId) {
+      console.log("Cannot send private message:", {
+        connected: isConnected,
+        hasNickname: !!nickname,
+        hasText: !!text.trim(),
+        hasRoomId: !!roomId
+      });
+      return;
+    }
     
     const message: Message = {
       roomId,
@@ -221,6 +304,16 @@ const WebpageRoom = () => {
     
     console.log("Sending private message:", message);
     socket.emit("chat:private", message);
+    
+    // Also add message to our local state for immediate feedback
+    const localMessage = {
+      ...message,
+      senderSocketId: socket.id // Add sender ID to identify our own messages
+    };
+    
+    // Add to both message lists
+    setMessages(prev => [...prev, localMessage]);
+    setPrivateMessages(prev => [...prev, localMessage]);
   };
 
   const handleSetStatus = (status: UserStatus) => {
@@ -236,14 +329,28 @@ const WebpageRoom = () => {
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
     if (message.roomId === roomId) {
+      // Add join message to chat
       setMessages(prev => [...prev, message]);
+      
+      // Request updated visitor list
+      if (socket && isConnected) {
+        console.log("Requesting latest visitor list after user joined");
+        socket.emit("webpage:getVisitors", { roomId });
+      }
     }
   };
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
     if (message.roomId === roomId) {
+      // Add leave message to chat
       setMessages(prev => [...prev, message]);
+      
+      // Request updated visitor list
+      if (socket && isConnected) {
+        console.log("Requesting latest visitor list after user left");
+        socket.emit("webpage:getVisitors", { roomId });
+      }
     }
   };
 
