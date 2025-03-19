@@ -445,24 +445,29 @@ const WebpageRoom = () => {
       if (!isDuplicate) {
         setPrivateMessages(prev => [...prev, message]);
         
-        // Also add to main message list if not already there
-        const isMessageDuplicate = messages.some(
-          m => m.timestamp === message.timestamp && 
-              m.nickname === message.nickname && 
-              m.text === message.text &&
-              m.recipient === message.recipient
-        );
-        
-        if (!isMessageDuplicate) {
-          setMessages(prev => [...prev, message]);
+        // Show a toast if this is a message from someone else to this user
+        // and only if the private chat isn't already open with this sender
+        if (message.nickname !== nickname && 
+            message.recipient === nickname && 
+            !(privateChatOpen && privateChatRecipient === message.nickname)) {
           
-          // Show a toast if this is a message from someone else to this user
-          if (message.nickname !== nickname && message.recipient === nickname) {
-            toast({
-              title: `Private message from ${message.nickname}`,
-              description: message.text,
-              variant: "default"
-            });
+          toast({
+            title: `Private message from ${message.nickname}`,
+            description: message.text,
+            variant: "default",
+            action: (
+              <div 
+                className="cursor-pointer underline"
+                onClick={() => handleStartPrivateChat(message.nickname || "")}
+              >
+                Reply
+              </div>
+            )
+          });
+          
+          // Automatically open private chat with this user if it's not already open
+          if (!privateChatOpen) {
+            handleStartPrivateChat(message.nickname || "");
           }
         }
       } else {
