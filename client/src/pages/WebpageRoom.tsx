@@ -419,8 +419,10 @@ const WebpageRoom = () => {
   
   const onPrivateMessage = (message: Message) => {
     console.log("Private message received:", message);
-    // @ts-ignore - isBroadcast is added by our server code
+    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
     const isBroadcast = message.isBroadcast;
+    // @ts-ignore
+    const isRoomBroadcast = message.roomBroadcast;
     
     // Process only if:
     // 1. The message is for this room AND
@@ -436,37 +438,51 @@ const WebpageRoom = () => {
              m.recipient === message.recipient
       );
       
-      // Only add if:
-      // 1. This is a direct message to recipient OR
-      // 2. This is a global broadcast we haven't seen yet
-      if ((!isBroadcast) || (isBroadcast && !isDuplicate)) {
-        if (!isDuplicate) {
-          // Add new private message
-          setPrivateMessages(prev => [...prev, message]);
+      // New simplified logic for private messages:
+      // 1. If it's a room broadcast (sent directly to this user), add it
+      // 2. If it's a global broadcast, only add if we haven't seen it before
+      
+      if (isRoomBroadcast && !isDuplicate) {
+        // Room broadcast (direct to this user) and not a duplicate - add it
+        setPrivateMessages(prev => [...prev, message]);
+        
+        // Also add to main message list if not already there
+        const isMessageDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+              m.nickname === message.nickname && 
+              m.text === message.text &&
+              m.recipient === message.recipient
+        );
+        
+        if (!isMessageDuplicate) {
+          setMessages(prev => [...prev, message]);
           
-          // Also add to main message list if not already there
-          const isMessageDuplicate = messages.some(
-            m => m.timestamp === message.timestamp && 
-                m.nickname === message.nickname && 
-                m.text === message.text &&
-                m.recipient === message.recipient
-          );
-          
-          if (!isMessageDuplicate) {
-            setMessages(prev => [...prev, message]);
-            
-            // Show a toast if this is a message from someone else to this user
-            if (message.nickname !== nickname && message.recipient === nickname) {
-              toast({
-                title: `Private message from ${message.nickname}`,
-                description: message.text,
-                variant: "default"
-              });
-            }
+          // Show a toast if this is a message from someone else to this user
+          if (message.nickname !== nickname && message.recipient === nickname) {
+            toast({
+              title: `Private message from ${message.nickname}`,
+              description: message.text,
+              variant: "default"
+            });
           }
-        } else {
-          console.log("Skipping duplicate private message");
         }
+      } else if (isBroadcast && !isDuplicate) {
+        // Global broadcast and not a duplicate - add it
+        setPrivateMessages(prev => [...prev, message]);
+        
+        // Also add to main message list if not already there
+        const isMessageDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+              m.nickname === message.nickname && 
+              m.text === message.text &&
+              m.recipient === message.recipient
+        );
+        
+        if (!isMessageDuplicate) {
+          setMessages(prev => [...prev, message]);
+        }
+      } else {
+        console.log("Skipping duplicate private message");
       }
     }
   };

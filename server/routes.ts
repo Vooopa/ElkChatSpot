@@ -342,11 +342,11 @@ ${entryCode}
       
       if (recipientSocketId) {
         // Send to recipient with direct flag
-        io.to(recipientSocketId).emit("chat:private", { ...completeMessage, isBroadcast: false });
+        io.to(recipientSocketId).emit("chat:private", { ...completeMessage, roomBroadcast: true, isBroadcast: false });
         // Also send back to sender with direct flag
-        socket.emit("chat:private", { ...completeMessage, isBroadcast: false });
+        socket.emit("chat:private", { ...completeMessage, roomBroadcast: true, isBroadcast: false });
         // Global broadcast with broadcast flag (for cross-tab visibility)
-        io.emit("chat:private", { ...completeMessage, isBroadcast: true });
+        io.emit("chat:private", { ...completeMessage, roomBroadcast: false, isBroadcast: true });
       } else {
         // Send an error back to the sender
         socket.emit("error:message", {
