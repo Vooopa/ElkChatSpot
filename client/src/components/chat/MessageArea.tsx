@@ -20,16 +20,22 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
     return nickname.charAt(0).toUpperCase();
   };
 
-  // Function to generate a consistent color based on nickname
-  const getColorClass = (nickname: string): string => {
-    const colors = [
-      "blue", "purple", "green", "amber", 
-      "rose", "indigo", "teal", "cyan"
+  // Function to generate consistent colors based on nickname
+  const getAvatarColors = (nickname: string): { bg: string, text: string } => {
+    const colorOptions = [
+      { bg: "bg-blue-100", text: "text-blue-500" },
+      { bg: "bg-purple-100", text: "text-purple-500" },
+      { bg: "bg-green-100", text: "text-green-500" },
+      { bg: "bg-amber-100", text: "text-amber-500" },
+      { bg: "bg-rose-100", text: "text-rose-500" },
+      { bg: "bg-indigo-100", text: "text-indigo-500" },
+      { bg: "bg-teal-100", text: "text-teal-500" },
+      { bg: "bg-cyan-100", text: "text-cyan-500" }
     ];
     
     // Safety check: if nickname is undefined or empty, return a default color
     if (!nickname || nickname.length === 0) {
-      return colors[0];
+      return colorOptions[0];
     }
     
     // Simple hash function to determine color
@@ -37,8 +43,8 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
       return acc + char.charCodeAt(0);
     }, 0);
     
-    const colorIndex = hash % colors.length;
-    return colors[colorIndex];
+    const colorIndex = hash % colorOptions.length;
+    return colorOptions[colorIndex];
   };
 
   return (
@@ -87,7 +93,7 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
         // Private message
         if (message.type === MessageType.PRIVATE_MESSAGE) {
           const isCurrentUser = message.nickname === currentUser;
-          const colorName = getColorClass(message.nickname || "Anonymous");
+          const colors = getAvatarColors(message.nickname || "Anonymous");
           const time = message.timestamp ? format(new Date(message.timestamp), "h:mm a") : "";
           const recipientText = isCurrentUser 
             ? `Private message to ${message.recipient || "Unknown"}` 
@@ -99,7 +105,7 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
               className={`user-message flex mb-4 ${isCurrentUser ? "justify-end" : ""}`}
             >
               {!isCurrentUser && (
-                <div className={`w-8 h-8 rounded-full bg-${colorName}-100 flex-shrink-0 flex items-center justify-center text-${colorName}-500 font-medium mr-2`}>
+                <div className={`w-8 h-8 rounded-full ${colors.bg} flex-shrink-0 flex items-center justify-center ${colors.text} font-medium mr-2`}>
                   {getInitial(message.nickname || '')}
                 </div>
               )}
@@ -119,7 +125,7 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
                 </div>
               </div>
               {isCurrentUser && (
-                <div className={`w-8 h-8 rounded-full bg-${colorName}-100 flex-shrink-0 flex items-center justify-center text-${colorName}-500 font-medium ml-2`}>
+                <div className={`w-8 h-8 rounded-full ${colors.bg} flex-shrink-0 flex items-center justify-center ${colors.text} font-medium ml-2`}>
                   {getInitial(message.nickname || '')}
                 </div>
               )}
@@ -129,7 +135,7 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
 
         // Regular user message
         const isCurrentUser = message.nickname === currentUser;
-        const colorName = getColorClass(message.nickname || "Anonymous");
+        const colors = getAvatarColors(message.nickname || "Anonymous");
         const time = message.timestamp ? format(new Date(message.timestamp), "h:mm a") : "";
 
         return (
@@ -138,7 +144,7 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
             className={`user-message flex mb-4 ${isCurrentUser ? "justify-end" : ""}`}
           >
             {!isCurrentUser && (
-              <div className={`w-8 h-8 rounded-full bg-${colorName}-100 flex-shrink-0 flex items-center justify-center text-${colorName}-500 font-medium mr-2`}>
+              <div className={`w-8 h-8 rounded-full ${colors.bg} flex-shrink-0 flex items-center justify-center ${colors.text} font-medium mr-2`}>
                 {getInitial(message.nickname || '')}
               </div>
             )}
@@ -159,7 +165,7 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
               </div>
             </div>
             {isCurrentUser && (
-              <div className={`w-8 h-8 rounded-full bg-${colorName}-100 flex-shrink-0 flex items-center justify-center text-${colorName}-500 font-medium ml-2`}>
+              <div className={`w-8 h-8 rounded-full ${colors.bg} flex-shrink-0 flex items-center justify-center ${colors.text} font-medium ml-2`}>
                 {getInitial(message.nickname || '')}
               </div>
             )}

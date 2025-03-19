@@ -137,9 +137,9 @@ const ChatRoom = () => {
     // Save socket to state
     setSocket(newSocket);
 
-    // Clean up on unmount
+    // Only disconnect when the component is fully unmounted
     return () => {
-      console.log("Cleaning up socket listeners");
+      console.log("Component unmounting, disconnecting socket");
       newSocket.disconnect();
     };
   }, [roomId, nickname, joining, toast]);
