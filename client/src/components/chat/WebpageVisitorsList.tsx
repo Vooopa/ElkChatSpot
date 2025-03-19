@@ -155,6 +155,12 @@ const WebpageVisitorsList = ({
                       {visitor.nickname === currentUser && (
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
+                      {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
+                        <span className="ml-2 inline-flex items-center animate-pulse">
+                          <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
+                          <span className="text-xs font-semibold text-red-500">{visitor.unreadMessages} new message{visitor.unreadMessages > 1 ? 's' : ''}</span>
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -163,12 +169,12 @@ const WebpageVisitorsList = ({
                     <Button 
                       variant={visitor.unreadMessages ? 'destructive' : 'ghost'}
                       size="sm"
-                      className={`relative px-2 py-1 ${visitor.unreadMessages ? 'animate-bounce bg-red-500 text-white' : ''}`}
+                      className={`relative px-2 py-1 ${visitor.unreadMessages ? 'bg-red-500 text-white shadow-lg shadow-red-200' : ''}`}
                       title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}`}
                       onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                     >
                       <div className="flex items-center gap-1">
-                        <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-white' : 'text-blue-500'}`} />
+                        <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-white animate-pulse' : 'text-blue-500'}`} />
                         <span className={visitor.unreadMessages ? 'font-bold' : 'hidden'}>
                           {visitor.unreadMessages ? `${visitor.unreadMessages} new` : ''}
                         </span>
