@@ -178,22 +178,23 @@ const WebpageRoom = () => {
     });
     
     socket.on("chat:message", (message) => {
-      console.log("Received chat:message event", message);
-      // Ottieni la stanza del messaggio
-      const messageRoomId = message.roomId || '';
+      console.log("🛑 [RICEVUTO] chat:message", message);
+      logCurrentState("chat:message event");
       
-      // Verifica diretta se il messaggio è per questa stanza
-      if (messageRoomId === roomId) {
-        console.log("✅ [CHAT MESSAGE] Messaggio per questa stanza, aggiungo:", message);
-        // Aggiungi direttamente alla lista messaggi, senza nessun altro controllo
-        setMessages(prevMessages => {
-          // Super semplice - solo aggiungi in fondo
-          console.log(`📩 Aggiungendo messaggio. Messaggi attuali: ${prevMessages.length}`);
-          return [...prevMessages, message];
-        });
-      } else {
-        console.log(`❌ [CHAT MESSAGE] Messaggio non per questa stanza. MessageRoom=${messageRoomId}, CurrentRoom=${roomId}`);
-      }
+      // ULTRA SEMPLICE - aggiungi il messaggio e basta
+      console.log("🛑 MESSAGGIO NORMALE RICEVUTO!");
+      
+      // Aggiungi direttamente alla lista (duplicati inclusi)
+      setMessages(prevMessages => {
+        console.log(`🛑 Messaggi prima: ${prevMessages.length}, dopo: ${prevMessages.length + 1}`);
+        return [...prevMessages, message];
+      });
+      
+      // Forza un nuovo render manuale per verificare che setMessages funzioni
+      // Questo è un hack, ma potrebbe aiutare a risolvere il problema
+      setTimeout(() => {
+        console.log("🛑 [FORZATO] Verifica messaggio aggiunto:", messages.length);
+      }, 500);
     });
     
     socket.on("chat:private", (message) => {
@@ -477,30 +478,33 @@ const WebpageRoom = () => {
     }
   };
 
+  // Funzione di debug per stampare lo stato attuale
+  const logCurrentState = (triggerPoint: string) => {
+    console.log(`[DEBUG @ ${triggerPoint}] Current state:`, {
+      roomId,
+      nickname, 
+      isConnected,
+      socket: socket?.id || 'no socket',
+      messageCount: messages.length,
+      visitors: visitors.length
+    });
+  };
+
   const onChatMessage = (message: Message) => {
-    console.log("Chat message received:", message);
+    console.log("💫 Chat message received:", message);
+    logCurrentState('onChatMessage');
     
-    // Super simplified message handling - just add to the list
-    // if it's for our room and not a duplicate
-    if (message.roomId === roomId) {
-      console.log(`✅ Adding chat message to room ${roomId}`);
-      
-      // Basic duplicate check
-      const isDuplicate = messages.some(
-        m => m.timestamp === message.timestamp && 
-             m.nickname === message.nickname && 
-             m.text === message.text
-      );
-      
-      if (!isDuplicate) {
-        setMessages(prev => [...prev, message]);
-        console.log("✅ Message added to state");
-      } else {
-        console.log("❌ Skipping duplicate message");
-      }
-    } else {
-      console.log(`❌ Message is for room ${message.roomId}, not our room ${roomId}`);
-    }
+    // Non facciamo nessun controllo, aggiungiamo e basta
+    // Questo è il sistema più semplice possibile
+    console.log(`💫 Tentativo di aggiungere messaggio alla stanza ${roomId}`);
+    console.log(`💫 Prima dell'aggiunta: ${messages.length} messaggi`);
+    
+    // Aggiungi ogni messaggio, senza filtri
+    setMessages(prev => {
+      const newMessages = [...prev, message];
+      console.log(`💫 Dopo l'aggiunta: dovremmo avere ${newMessages.length} messaggi`);
+      return newMessages;
+    });
   };
   
   const onPrivateMessage = (message: Message) => {
