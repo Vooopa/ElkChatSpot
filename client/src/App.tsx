@@ -8,6 +8,7 @@ import WebpageRoom from "@/pages/WebpageRoom";
 import WidgetChat from "@/pages/WidgetChat";
 import EmbedCode from "@/pages/EmbedCode";
 import Home from "@/pages/Home";
+import SimpleChatDemo from "@/pages/SimpleChatDemo";
 
 function Router() {
   return (
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/widget" component={WidgetChat} />
       <Route path="/widget/:url*" component={WidgetChat} />
       <Route path="/embed-code" component={EmbedCode} />
+      <Route path="/simple-demo" component={SimpleChatDemo} />
       <Route component={NotFound} />
     </Switch>
   );
