@@ -607,18 +607,18 @@ const WebpageRoom = () => {
         });
       });
       
-      // Show toast notification
+      // Show prominent toast notification
       toast({
-        title: `New message from ${message.nickname}`,
+        title: `📨 Nuovo messaggio da ${message.nickname}!`,
         description: message.text,
-        variant: "default",
-        duration: 5000,
+        variant: "destructive",
+        duration: 10000, // Più lungo
         action: (
           <div 
-            className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
+            className="cursor-pointer bg-red-500 text-white px-3 py-1 rounded font-medium hover:bg-red-600 transition-colors border-2 border-yellow-300 animate-pulse"
             onClick={() => handleStartPrivateChat(message.nickname || "")}
           >
-            Reply
+            RISPONDI ORA
           </div>
         )
       });
@@ -713,9 +713,11 @@ const WebpageRoom = () => {
               
               {/* Unread messages indicator */}
               {totalUnreadMessages > 0 && (
-                <div className="ml-3 animate-pulse flex items-center bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
-                  <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>
-                  {totalUnreadMessages} unread private message{totalUnreadMessages > 1 ? 's' : ''}
+                <div className="ml-3 chat-button-notification flex items-center px-2 py-1 rounded-full text-xs font-medium border-2 border-yellow-300">
+                  <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1 animate-ping"></span>
+                  <span className="font-bold">
+                    {totalUnreadMessages} NUOVO/I MESSAGGIO/I PRIVATO/I
+                  </span>
                 </div>
               )}
             </div>
@@ -730,9 +732,9 @@ const WebpageRoom = () => {
                     handleStartPrivateChat(visitorWithUnread.nickname);
                   }
                 }}
-                className="px-3 py-1 bg-red-600 text-white rounded-full text-xs font-medium hover:bg-red-700 transition-colors"
+                className="px-3 py-1 chat-button-notification border-2 border-yellow-300 font-bold text-white rounded-full text-sm shadow-lg"
               >
-                Check messages
+                CONTROLLA MESSAGGI ADESSO!
               </button>
             )}
             <a 

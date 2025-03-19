@@ -356,7 +356,18 @@ ${entryCode}
       
       if (recipientSocketId) {
         // Send to recipient
-        io.to(recipientSocketId).emit("chat:private", completeMessage);
+        io.to(recipientSocketId).emit("chat:private", {
+          ...completeMessage,
+          hasNotification: true // Aggiunto flag speciale per attivare le notifiche
+        });
+        
+        // Invia un evento specifico per conteggiare i messaggi non letti
+        io.to(recipientSocketId).emit("notification:unread", {
+          from: message.nickname,
+          count: 1,
+          timestamp: new Date().toISOString()
+        });
+        
         // Also send back to sender
         socket.emit("chat:private", completeMessage);
       } else {
