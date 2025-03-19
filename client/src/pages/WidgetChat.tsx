@@ -132,7 +132,6 @@ export default function WidgetChat() {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
-    // Ignore broadcast messages if we already received a direct one
     // @ts-ignore - isBroadcast is added by our server code
     const isBroadcast = message.isBroadcast;
     
@@ -145,27 +144,18 @@ export default function WidgetChat() {
              m.type === MessageType.USER_JOINED
       );
       
-      // Only add if not a duplicate or if it's the direct (non-broadcast) version
-      if (!isDuplicate || !isBroadcast) {
-        // If we get a direct message after already adding a broadcast, replace it
-        if (!isBroadcast && isDuplicate) {
-          // Replace existing message
-          setMessages(prev => prev.map(m => 
-            (m.timestamp === message.timestamp && 
-             m.nickname === message.nickname && 
-             m.type === MessageType.USER_JOINED) ? message : m
-          ));
-        } else if (!isDuplicate) {
-          // Add new message
-          setMessages(prev => [...prev, message]);
-        }
+      // Simplest approach - only add messages we haven't seen yet
+      if (!isDuplicate) {
+        // Add new message if we haven't seen it before
+        setMessages(prev => [...prev, message]);
+      } else {
+        console.log("Skipping duplicate visitor join message");
       }
     }
   };
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
-    // Ignore broadcast messages if we already received a direct one
     // @ts-ignore - isBroadcast is added by our server code
     const isBroadcast = message.isBroadcast;
     
@@ -178,20 +168,12 @@ export default function WidgetChat() {
              m.type === MessageType.USER_LEFT
       );
       
-      // Only add if not a duplicate or if it's the direct (non-broadcast) version
-      if (!isDuplicate || !isBroadcast) {
-        // If we get a direct message after already adding a broadcast, replace it
-        if (!isBroadcast && isDuplicate) {
-          // Replace existing message
-          setMessages(prev => prev.map(m => 
-            (m.timestamp === message.timestamp && 
-             m.nickname === message.nickname && 
-             m.type === MessageType.USER_LEFT) ? message : m
-          ));
-        } else if (!isDuplicate) {
-          // Add new message
-          setMessages(prev => [...prev, message]);
-        }
+      // Simplest approach - only add messages we haven't seen yet
+      if (!isDuplicate) {
+        // Add new message if we haven't seen it before
+        setMessages(prev => [...prev, message]);
+      } else {
+        console.log("Skipping duplicate visitor left message");
       }
     }
   };
@@ -200,10 +182,10 @@ export default function WidgetChat() {
     console.log("Chat message received:", message);
     // @ts-ignore - isBroadcast is added by our server code
     const isBroadcast = message.isBroadcast;
+    // @ts-ignore - roomBroadcast is added by our server code
+    const isRoomBroadcast = message.roomBroadcast;
     
-    // IMPORTANT FIX: ONLY process messages that are:
-    // 1. For this room AND
-    // 2. Either direct messages to this room OR broadcasts that we haven't seen yet
+    // Check if this message is for our room
     if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
       // Check if we already have this message to avoid duplicates
       const isDuplicate = messages.some(
@@ -212,17 +194,12 @@ export default function WidgetChat() {
              m.text === message.text
       );
       
-      // Logic to prevent duplicates:
-      // 1. If it's a broadcast message and we already have this message, ignore it
-      // 2. If it's a direct message (not broadcast), we still need to be cautious
-      if ((isBroadcast && !isDuplicate) || (!isBroadcast)) {
-        if (!isBroadcast && isDuplicate) {
-          // Don't add direct message if we already have it
-          console.log("Received duplicate message, not updating state");
-        } else if (!isDuplicate) {
-          // Add new message if we haven't seen it before
-          setMessages(prev => [...prev, message]);
-        }
+      // Simplest approach - only add messages we haven't seen yet
+      if (!isDuplicate) {
+        // Add new message if we haven't seen it before
+        setMessages(prev => [...prev, message]);
+      } else {
+        console.log("Skipping duplicate chat message");
       }
     }
   };
