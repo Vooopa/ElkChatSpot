@@ -58,47 +58,31 @@ const PrivateChatDialog = ({
     });
 
     function handlePrivateMessage(message: Message) {
-      console.log("🔵 Received private message in dialog:", message);
+      console.log("💬 DIALOG: Ricevuto messaggio privato:", message);
       
-      // SEMPLICISSIMO controllo di rilevanza
-      const isFromCurrentUser = message.nickname === currentUser;
-      const isToCurrentUser = message.recipient === currentUser;
-      const isFromRecipient = message.nickname === recipientName;
-      const isToRecipient = message.recipient === recipientName;
+      // ULTRA SEMPLICISSIMO - sempre aggiungi il messaggio
+      console.log("💬 DIALOG: Aggiungo messaggio alla chat privata");
       
-      // Il messaggio è rilevante se:
-      // 1. È da me all'utente con cui sto chattando, OPPURE
-      // 2. È dall'utente con cui sto chattando a me
-      const isRelevant = (isFromCurrentUser && isToRecipient) || (isFromRecipient && isToCurrentUser);
-      
-      console.log(`🔵 Rilevanza: ${isRelevant}`, {
-        isFromCurrentUser,
-        isToCurrentUser,
-        isFromRecipient,
-        isToRecipient,
-        currentUser,
-        recipientName,
-        messageFrom: message.nickname,
-        messageTo: message.recipient
+      // Aggiungi SEMPRE alla dialog, senza filtri
+      setMessages(prevMessages => {
+        console.log(`💬 DIALOG: Messaggi prima: ${prevMessages.length}, dopo: ${prevMessages.length + 1}`);
+        return [...prevMessages, message];
       });
       
-      if (isRelevant) {
-        console.log("🔵 Messaggio rilevante per questa chat, aggiungo");
-        
-        // Aggiungi al messaggio nella chatbox
-        setMessages(prevMessages => [...prevMessages, message]);
-        
-        // Salva anche nella cronologia per riferimento futuro
-        setChatHistory(prevHistory => {
-          const otherUser = isFromCurrentUser ? message.recipient! : message.nickname!;
-          const prevMessages = prevHistory.get(otherUser) || [];
-          const newHistory = new Map(prevHistory);
-          newHistory.set(otherUser, [...prevMessages, message]);
-          return newHistory;
-        });
-      } else {
-        console.log("🔵 Messaggio NON rilevante per questa chat, ignorato");
-      }
+      // Aggiungi anche alla cronologia
+      setChatHistory(prevHistory => {
+        // Salva con chiave dell'altro utente
+        const otherUser = message.nickname === currentUser ? message.recipient! : message.nickname!;
+        const prevMessages = prevHistory.get(otherUser) || [];
+        const newHistory = new Map(prevHistory);
+        newHistory.set(otherUser, [...prevMessages, message]);
+        return newHistory;
+      });
+      
+      // Hack per assicurarsi che il messaggio appaia
+      setTimeout(() => {
+        console.log("💬 [DIALOG] FORZATO: Verifica messaggio aggiunto:", messages.length);
+      }, 300);
     }
 
     if (socket) {
