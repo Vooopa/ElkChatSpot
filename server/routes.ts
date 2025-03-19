@@ -311,11 +311,13 @@ ${entryCode}
       } else {
         // Regular message - broadcast to everyone in the room
         console.log(`Broadcasting message from ${completeMessage.nickname} to room ${message.roomId}`);
-        // Add isBroadcast flag to distinguish direct room messages vs global broadcasts
-        io.to(message.roomId).emit("chat:message", { ...completeMessage, isBroadcast: false });
+        // Direct targeted emit to the specific room - this is NOT a global broadcast
+        // but it is a room broadcast, so we set roomBroadcast to true
+        io.to(message.roomId).emit("chat:message", { ...completeMessage, roomBroadcast: true, isBroadcast: false });
         
-        // Also broadcast to all clients with broadcast flag (helps with cross-tab visibility)
-        io.emit("chat:message", { ...completeMessage, isBroadcast: true });
+        // Also broadcast to all clients with global broadcast flag (helps with cross-tab visibility)
+        // We're using isBroadcast for global broadcasts across all clients
+        io.emit("chat:message", { ...completeMessage, roomBroadcast: false, isBroadcast: true });
       }
     });
     
