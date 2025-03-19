@@ -110,8 +110,9 @@ ${entryCode}
         type: MessageType.USER_JOINED
       };
       
-      // Send join notification to everyone in the room
+      // Send join notification to everyone in the room and broadcast globally
       io.to(roomId).emit("user:joined", joinMessage);
+      io.emit("user:joined", joinMessage); // Global broadcast to help with cross-tab visibility
       
       // Send the current user count to everyone in the room
       io.to(roomId).emit("user:count", userCount);
@@ -215,14 +216,18 @@ ${entryCode}
         type: MessageType.USER_JOINED
       };
       
-      // Emit visitor joined event to all clients in the room
+      // Emit visitor joined event to all clients in the room AND broadcast to everyone
       io.to(addedRoomId).emit("visitor:joined", joinMessage);
+      io.emit("visitor:joined", joinMessage); // Broadcast to all connected clients
       
       // Send current visitor count
       io.to(addedRoomId).emit("webpage:userCount", visitors.size);
       
       // Send list of all current visitors to the newly joined user
       socket.emit("webpage:visitors", Array.from(visitors.values()));
+      
+      // Broadcast updated visitor list to all clients in this room
+      io.to(addedRoomId).emit("webpage:visitors", Array.from(visitors.values()));
       
       // Send room details including the original URL
       const roomDetails = storage.getRoom(addedRoomId);
@@ -301,7 +306,11 @@ ${entryCode}
         }
       } else {
         // Regular message - broadcast to everyone in the room
+        console.log(`Broadcasting message from ${completeMessage.nickname} to room ${message.roomId}`);
         io.to(message.roomId).emit("chat:message", completeMessage);
+        
+        // Also broadcast to all clients (this helps with cross-tab visibility)
+        io.emit("chat:message", completeMessage);
       }
     });
     
@@ -364,8 +373,9 @@ ${entryCode}
           type: MessageType.USER_LEFT
         };
         
-        // Emit visitor left event
+        // Emit visitor left event to the room and to all connected clients
         io.to(roomId).emit("visitor:left", leaveMessage);
+        io.emit("visitor:left", leaveMessage); // Global broadcast to help with cross-tab visibility
         
         // Update visitor count
         io.to(roomId).emit("webpage:userCount", visitors.size);
