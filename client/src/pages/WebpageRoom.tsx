@@ -325,9 +325,19 @@ const WebpageRoom = () => {
 
   const onVisitorJoined = (message: Message) => {
     console.log("Visitor joined:", message);
-    if (message.roomId === roomId) {
-      // Add join message to chat
-      setMessages(prev => [...prev, message]);
+    // Check for both exact match and normalized URL match for roomId
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
+      // Check if we already have this message to avoid duplicates
+      const isDuplicate = messages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_JOINED
+      );
+      
+      if (!isDuplicate) {
+        // Add join message to chat
+        setMessages(prev => [...prev, message]);
+      }
       
       // Request updated visitor list
       if (socket && isConnected) {
@@ -339,9 +349,19 @@ const WebpageRoom = () => {
 
   const onVisitorLeft = (message: Message) => {
     console.log("Visitor left:", message);
-    if (message.roomId === roomId) {
-      // Add leave message to chat
-      setMessages(prev => [...prev, message]);
+    // Check for both exact match and normalized URL match for roomId
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
+      // Check if we already have this message to avoid duplicates
+      const isDuplicate = messages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_LEFT
+      );
+      
+      if (!isDuplicate) {
+        // Add leave message to chat
+        setMessages(prev => [...prev, message]);
+      }
       
       // Request updated visitor list
       if (socket && isConnected) {
@@ -353,25 +373,55 @@ const WebpageRoom = () => {
 
   const onChatMessage = (message: Message) => {
     console.log("Chat message received:", message);
-    if (message.roomId === roomId) {
-      setMessages(prev => [...prev, message]);
+    // Handle messages for the current room, even if they're broadcast globally
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
+      // Check if we already have this message to avoid duplicates
+      const isDuplicate = messages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.text === message.text
+      );
+      
+      if (!isDuplicate) {
+        setMessages(prev => [...prev, message]);
+      }
     }
   };
   
   const onPrivateMessage = (message: Message) => {
     console.log("Private message received:", message);
-    if (message.roomId === roomId) {
-      setPrivateMessages(prev => [...prev, message]);
-      // Also add to main message list
-      setMessages(prev => [...prev, message]);
+    // Check for both exact and normalized room ID matches
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
+      // Check for duplicates
+      const isDuplicate = privateMessages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.text === message.text &&
+             m.recipient === message.recipient
+      );
       
-      // Show a toast if the message is from someone else
-      if (message.nickname !== nickname) {
-        toast({
-          title: `Private message from ${message.nickname}`,
-          description: message.text,
-          variant: "default"
-        });
+      if (!isDuplicate) {
+        setPrivateMessages(prev => [...prev, message]);
+        // Also add to main message list if not a duplicate there
+        const isMessageDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.text === message.text &&
+               m.recipient === message.recipient
+        );
+        
+        if (!isMessageDuplicate) {
+          setMessages(prev => [...prev, message]);
+        }
+        
+        // Show a toast if the message is from someone else
+        if (message.nickname !== nickname) {
+          toast({
+            title: `Private message from ${message.nickname}`,
+            description: message.text,
+            variant: "default"
+          });
+        }
       }
     }
   };
