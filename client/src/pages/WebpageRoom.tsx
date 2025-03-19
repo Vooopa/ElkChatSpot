@@ -236,29 +236,45 @@ const WebpageRoom = () => {
       if (isToMe && !isFromMe) {
         console.log("📩 [PRIVATE] Sei tu il destinatario del messaggio!");
         
-        // IMPORTANTE: aggiorna contatori messaggi non letti
         const fromUser = message.nickname || '';
-        console.log(`📩 [PRIVATE] Incremento contatore per ${fromUser}`);
+        console.log(`📩 [PRIVATE] Calcolo contatore per ${fromUser}`);
         
-        // Forza un aggiornamento sincrono del contatore
-        setVisitors(prevVisitors => {
-          const newVisitors = prevVisitors.map(visitor => {
-            if (visitor.nickname === fromUser) {
-              const newCount = (visitor.unreadMessages || 0) + 1;
-              console.log(`📩 [PRIVATE] Contatore aggiornato: ${visitor.unreadMessages} -> ${newCount}`);
-              return {
-                ...visitor,
-                unreadMessages: newCount
-              };
-            }
-            return visitor;
-          });
+        // IMPORTANTE - Forza una copia completa dell'array visitors e aggiorna il contatore
+        // Questo è un hack, ma potrebbe risolvere il problema di aggiornamento UI
+        const updatedVisitors = [...visitors];
+        let visitorFound = false;
+        
+        for (let i = 0; i < updatedVisitors.length; i++) {
+          if (updatedVisitors[i].nickname === fromUser) {
+            visitorFound = true;
+            const prevCount = updatedVisitors[i].unreadMessages || 0;
+            const newCount = prevCount + 1;
+            
+            console.log(`📩 [PRIVATE] Contatore aggiornato manualmente: ${prevCount} -> ${newCount}`);
+            
+            // Crea un nuovo oggetto visitor con il contatore aggiornato
+            updatedVisitors[i] = {
+              ...updatedVisitors[i],
+              unreadMessages: newCount
+            };
+            break;
+          }
+        }
+        
+        if (visitorFound) {
+          console.log('📩 [PRIVATE] Aggiorno direttamente visitors con setState');
+          setVisitors(updatedVisitors);
           
-          console.log('📩 [PRIVATE] Visitors dopo aggiornamento:', 
-            newVisitors.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
-          
-          return newVisitors;
-        });
+          // DEBUG: forza un altro aggiornamento dopo un breve ritardo
+          setTimeout(() => {
+            console.log('📩 [PRIVATE] Forzo un ulteriore aggiornamento visitors');
+            setVisitors(current => {
+              console.log('📩 [PRIVATE] Stato attuale visitors:', 
+                current.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
+              return [...current]; // ritorna una nuova copia per forzare il re-render
+            });
+          }, 100);
+        }
         
         // Suona la notifica
         playNotificationSound();
@@ -288,11 +304,20 @@ const WebpageRoom = () => {
         console.log("📩 [PRIVATE] Questo messaggio non è per te");
       }
       
-      // Per debug, controlla i contatori dopo un attimo
+      // HACK FINALE: forza un aggiornamento globale della pagina dopo alcuni secondi
+      // Se tutto il resto fallisce, questo dovrebbe forzare un re-render
       setTimeout(() => {
-        console.log('📩 [CHECK] Visitors dopo timeout:', 
-          visitors.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
-      }, 1000);
+        console.log('📩 [EMERGENCY UPDATE] Forzo l\'aggiornamento della pagina');
+        // Forza un aggiornamento di tutti gli stati importanti
+        setVisitors(prev => [...prev]);
+        setMessages(prev => [...prev]);
+        
+        // Forza un secondo aggiornamento dopo un altro breve ritardo
+        setTimeout(() => {
+          console.log('📩 [FINAL CHECK] Stato finale visitors:', 
+            visitors.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
+        }, 300);
+      }, 800);
     });
     
     // Handle visitor events
