@@ -410,113 +410,89 @@ const WebpageRoom = () => {
 
   const onChatMessage = (message: Message) => {
     console.log("Chat message received:", message);
-    // @ts-ignore - isBroadcast and roomBroadcast are added by our server code
-    const isBroadcast = message.isBroadcast;
-    // @ts-ignore
-    const isRoomBroadcast = message.roomBroadcast;
     
-    // Process messages that match our room ID
-    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!)) {
-      // Check if we already have this message to avoid duplicates
+    // Super simplified message handling - just add to the list
+    // if it's for our room and not a duplicate
+    if (message.roomId === roomId) {
+      console.log(`✅ Adding chat message to room ${roomId}`);
+      
+      // Basic duplicate check
       const isDuplicate = messages.some(
         m => m.timestamp === message.timestamp && 
              m.nickname === message.nickname && 
              m.text === message.text
       );
       
-      // Simplified message handling - only room broadcasts exist now
-      // We still check for duplicates to be safe
       if (!isDuplicate) {
         setMessages(prev => [...prev, message]);
+        console.log("✅ Message added to state");
       } else {
-        // Either a duplicate or a message we shouldn't process
-        console.log("Skipping message (duplicate or invalid)");
+        console.log("❌ Skipping duplicate message");
       }
+    } else {
+      console.log(`❌ Message is for room ${message.roomId}, not our room ${roomId}`);
     }
   };
   
   const onPrivateMessage = (message: Message) => {
     console.log("🟢 Main component received private message:", message);
     
-    // Check if this is a broadcast message
-    // @ts-ignore - broadcastPrivate is a custom property we added in our server code
-    const isBroadcastMessage = message.broadcastPrivate === true;
+    // Basic check: is this message to me?
+    const isToMe = message.recipient?.toLowerCase() === nickname?.toLowerCase();
+    const isFromMe = message.nickname?.toLowerCase() === nickname?.toLowerCase();
     
-    // For broadcast messages, we need manual filtering
-    let isRelevantForThisUser = false;
+    // Log all the important info for debugging
+    console.log(`🟢 Private message details:`, {
+      isToMe,
+      isFromMe,
+      myNickname: nickname,
+      messageFrom: message.nickname,
+      messageTo: message.recipient,
+      roomId: roomId
+    });
     
-    if (isBroadcastMessage) {
-      // Only consider broadcast messages if:
-      // 1. Current user is the recipient OR
-      // 2. Current user is the sender
-      const userIsRecipient = message.recipient?.toLowerCase() === nickname?.toLowerCase();
-      const userIsSender = message.nickname?.toLowerCase() === nickname?.toLowerCase();
+    // If the message is to me and not from me, show a notification
+    if (isToMe && !isFromMe) {
+      console.log("🟢 This private message is FOR me from someone else!");
       
-      isRelevantForThisUser = userIsRecipient || userIsSender;
-      console.log("🟢 Broadcast private message relevance:", {
-        userIsRecipient,
-        userIsSender,
-        isRelevantForThisUser
+      // Play notification sound
+      playNotificationSound();
+      
+      // Update the visitor's unread count
+      setVisitors(prevVisitors => {
+        return prevVisitors.map(visitor => {
+          if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
+            return {
+              ...visitor,
+              unreadMessages: (visitor.unreadMessages || 0) + 1
+            };
+          }
+          return visitor;
+        });
       });
-    } else {
-      // For direct messages, check if:
-      // 1. The message is for this room AND
-      // 2. The message is either to or from this user
-      isRelevantForThisUser = 
-        (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId!))
-        && (message.nickname?.toLowerCase() === nickname?.toLowerCase() || 
-            message.recipient?.toLowerCase() === nickname?.toLowerCase());
-    }
-    
-    // Only process if relevant for this user
-    if (isRelevantForThisUser) {
-      console.log("🟢 Private message IS relevant for this user");
       
-      // If the message is from someone else to this user
-      if (message.nickname?.toLowerCase() !== nickname?.toLowerCase() && 
-          message.recipient?.toLowerCase() === nickname?.toLowerCase()) {
-        
-        // Play a notification sound
-        playNotificationSound();
-        
-        // Update unread count for this sender in visitors list - always do this
-        // regardless of whether the chat is open
-        setVisitors(prevVisitors => {
-          return prevVisitors.map(visitor => {
-            if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
-              // Increment unread count
-              return {
-                ...visitor,
-                unreadMessages: (visitor.unreadMessages || 0) + 1
-              };
-            }
-            return visitor;
-          });
-        });
-        
-        console.log("🟢 Showing private message notification from", message.nickname);
-        
-        // Show a simplified notification toast
-        toast({
-          title: `New message from ${message.nickname}`,
-          description: message.text,
-          variant: "default",
-          duration: 5000,
-          action: (
-            <div 
-              className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
-              onClick={() => handleStartPrivateChat(message.nickname || "")}
-            >
-              Reply
-            </div>
-          )
-        });
-        
-        // Auto-open the private chat for immediate visibility
-        handleStartPrivateChat(message.nickname || "");
-      }
+      // Show toast notification
+      toast({
+        title: `New message from ${message.nickname}`,
+        description: message.text,
+        variant: "default",
+        duration: 5000,
+        action: (
+          <div 
+            className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
+            onClick={() => handleStartPrivateChat(message.nickname || "")}
+          >
+            Reply
+          </div>
+        )
+      });
+      
+      // Automatically open the chat dialog
+      handleStartPrivateChat(message.nickname || "");
+      
+      console.log("🟢 Notification shown and chat opened automatically");
     } else {
-      console.log("🟢 Private message is NOT relevant for this user - ignoring");
+      console.log("🟢 Private message not requiring notification in main component");
     }
   };
 
