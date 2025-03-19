@@ -156,9 +156,15 @@ const WebpageVisitorsList = ({
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
                       {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
-                        <span className="ml-2 inline-flex items-center animate-pulse">
+                        <span className="ml-2 inline-flex items-center animate-ping">
                           <div className="w-2 h-2 rounded-full bg-red-500 mr-1"></div>
-                          <span className="text-xs font-semibold text-red-500">{visitor.unreadMessages} new message{visitor.unreadMessages > 1 ? 's' : ''}</span>
+                          <span className="text-xs font-bold text-red-500">
+                            {visitor.unreadMessages} NEW
+                          </span>
+                          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                          </span>
                         </span>
                       )}
                     </p>
