@@ -47,6 +47,9 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
     return colorOptions[colorIndex];
   };
 
+  // Log what messages we have to help debugging
+  console.log("💬 MessageArea rendering with messages:", messages);
+
   return (
     <div className="message-area flex-1 overflow-y-auto py-4 space-y-4">
       {/* Welcome message if this is the first message */}
@@ -58,9 +61,14 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
         </div>
       )}
 
+      {/* Debug info about messages */}
+      <div className="fixed top-0 right-0 bg-yellow-100 p-2 text-xs rounded m-1 z-50">
+        Total messages: {messages.length}
+      </div>
+
       {messages
-        // Filter out private messages from the public chat area
-        .filter(msg => msg.type !== MessageType.PRIVATE_MESSAGE)
+        // Don't filter private messages for now - show everything for debugging
+        //.filter(msg => msg.type !== MessageType.PRIVATE_MESSAGE)
         .map((message, index) => {
         // Different rendering based on message type
         if (message.type === MessageType.SYSTEM) {
