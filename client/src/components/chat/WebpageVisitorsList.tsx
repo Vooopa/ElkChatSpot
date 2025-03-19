@@ -163,11 +163,16 @@ const WebpageVisitorsList = ({
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="h-7 w-7"
-                      title={`Chat privately with ${visitor.nickname}`}
+                      className={`h-7 w-7 relative ${visitor.unreadMessages ? 'animate-pulse' : ''}`}
+                      title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}`}
                       onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                     >
-                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                      <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-blue-600' : 'text-blue-500'}`} />
+                      {visitor.unreadMessages && visitor.unreadMessages > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                          {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
+                        </span>
+                      )}
                     </Button>
                   )}
                   <div className="flex items-center text-sm text-gray-500">

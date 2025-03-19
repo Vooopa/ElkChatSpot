@@ -426,33 +426,70 @@ const WebpageRoom = () => {
       // Important: We no longer store private messages in the main component
       // The PrivateChatDialog component handles its own message storage
       
-      // If the message is from someone else to this user, and the private chat dialog
-      // isn't already open with this sender, show a toast notification
-      if (message.nickname !== nickname && 
-          message.recipient === nickname && 
-          !(privateChatOpen && privateChatRecipient === message.nickname)) {
-        
-        console.log("🟢 Showing private message notification from", message.nickname);
-        
-        // Show a notification toast with a reply button
-        toast({
-          title: `Private message from ${message.nickname}`,
-          description: message.text,
-          variant: "default",
-          action: (
-            <div 
-              className="cursor-pointer underline"
-              onClick={() => handleStartPrivateChat(message.nickname || "")}
-            >
-              Reply
-            </div>
-          )
-        });
-        
-        // Automatically open private chat with this user if no private chat is open
-        if (!privateChatOpen) {
-          console.log("🟢 Auto-opening private chat with", message.nickname);
-          handleStartPrivateChat(message.nickname || "");
+      // If the message is from someone else to this user
+      if (message.nickname !== nickname && message.recipient === nickname) {
+        // Update unread count for this sender in visitors list
+        if (!(privateChatOpen && privateChatRecipient === message.nickname)) {
+          // Increment unread message count for this user
+          setVisitors(prevVisitors => {
+            return prevVisitors.map(visitor => {
+              if (visitor.nickname === message.nickname) {
+                // Increment unread count
+                return {
+                  ...visitor,
+                  unreadMessages: (visitor.unreadMessages || 0) + 1
+                };
+              }
+              return visitor;
+            });
+          });
+          
+          console.log("🟢 Showing private message notification from", message.nickname);
+          
+          // Play notification sound if browser supports it
+          try {
+            // Create audio context for a notification sound
+            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.value = 1000; // frequency in hertz
+            gainNode.gain.value = 0.1; // volume control
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start();
+            setTimeout(() => {
+              oscillator.stop();
+            }, 200);
+          } catch (e) {
+            console.log("Browser doesn't support AudioContext");
+          }
+          
+          // Show a notification toast with a reply button - use more attention-grabbing style
+          toast({
+            title: `New message from ${message.nickname}`,
+            description: message.text,
+            variant: "destructive", // More noticeable red variant
+            duration: 8000, // Stay longer on screen (8 seconds)
+            className: "private-message-toast border-2 border-red-400 shadow-lg",
+            action: (
+              <div 
+                className="cursor-pointer bg-white text-red-600 px-3 py-1 rounded font-medium hover:bg-red-50 transition-colors"
+                onClick={() => handleStartPrivateChat(message.nickname || "")}
+              >
+                Reply
+              </div>
+            )
+          });
+          
+          // Automatically open private chat with this user if no private chat is open
+          if (!privateChatOpen) {
+            console.log("🟢 Auto-opening private chat with", message.nickname);
+            handleStartPrivateChat(message.nickname || "");
+          }
         }
       }
     }
@@ -460,6 +497,19 @@ const WebpageRoom = () => {
 
   // Handle starting a private chat
   const handleStartPrivateChat = (recipientName: string) => {
+    // Reset unread message count for this recipient
+    setVisitors(prevVisitors => {
+      return prevVisitors.map(visitor => {
+        if (visitor.nickname === recipientName) {
+          return {
+            ...visitor,
+            unreadMessages: 0 // Reset unread count
+          };
+        }
+        return visitor;
+      });
+    });
+    
     setPrivateChatRecipient(recipientName);
     setPrivateChatOpen(true);
   };
