@@ -72,12 +72,19 @@ ${entryCode}
         return;
       }
 
+      // Make sure the room exists in storage
+      if (!storage.getRoom(roomId)) {
+        console.log(`Creating new room: ${roomId}`);
+        storage.createRoom(roomId);
+      }
+      
       currentRoom = roomId;
       userNickname = nickname;
       isWebpageVisitor = false;
 
       // Join the room
       socket.join(roomId);
+      console.log(`User ${nickname} (${socket.id}) joining room: ${roomId}`);
       
       // Add user to the room in storage
       const success = storage.addUserToRoom(roomId, socket.id, nickname);
