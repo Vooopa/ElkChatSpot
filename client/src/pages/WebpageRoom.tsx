@@ -179,7 +179,9 @@ const WebpageRoom = () => {
     
     socket.on("chat:message", (message) => {
       console.log("Received chat:message event", message);
-      onChatMessage(message);
+      // SEMPLIFICATO: Aggiunge direttamente alla lista messaggi
+      setMessages(prev => [...prev, message]);
+      console.log("✅ Aggiunto messaggio alla chat direttamente");
     });
     
     socket.on("chat:private", (message) => {
