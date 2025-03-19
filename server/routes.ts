@@ -219,10 +219,10 @@ ${entryCode}
       };
       
       // Emit visitor joined event to all clients in the room AND broadcast to everyone
-      // Add isBroadcast flag to distinguish direct room messages vs global broadcasts
-      io.to(addedRoomId).emit("visitor:joined", { ...joinMessage, isBroadcast: false });
+      // Add roomBroadcast flag for direct room messages
+      io.to(addedRoomId).emit("visitor:joined", { ...joinMessage, roomBroadcast: true, isBroadcast: false });
       // Global broadcast with flag to help with cross-tab visibility
-      io.emit("visitor:joined", { ...joinMessage, isBroadcast: true });
+      io.emit("visitor:joined", { ...joinMessage, roomBroadcast: false, isBroadcast: true });
       
       // Send current visitor count
       io.to(addedRoomId).emit("webpage:userCount", visitors.size);
@@ -383,10 +383,10 @@ ${entryCode}
         };
         
         // Emit visitor left event to the room and to all connected clients
-        // Add isBroadcast flag to distinguish direct room messages vs global broadcasts
-        io.to(roomId).emit("visitor:left", { ...leaveMessage, isBroadcast: false });
+        // Add roomBroadcast flag for direct room messages
+        io.to(roomId).emit("visitor:left", { ...leaveMessage, roomBroadcast: true, isBroadcast: false });
         // Global broadcast with flag to help with cross-tab visibility
-        io.emit("visitor:left", { ...leaveMessage, isBroadcast: true });
+        io.emit("visitor:left", { ...leaveMessage, roomBroadcast: false, isBroadcast: true });
         
         // Update visitor count
         io.to(roomId).emit("webpage:userCount", visitors.size);
@@ -408,10 +408,10 @@ ${entryCode}
         };
         
         // Send leave notification to everyone in the room and broadcast globally
-        // Add isBroadcast flag to distinguish direct room messages vs global broadcasts
-        io.to(roomId).emit("user:left", { ...leaveMessage, isBroadcast: false });
+        // Add roomBroadcast flag for direct room messages
+        io.to(roomId).emit("user:left", { ...leaveMessage, roomBroadcast: true, isBroadcast: false });
         // Global broadcast with flag to help with cross-tab visibility
-        io.emit("user:left", { ...leaveMessage, isBroadcast: true });
+        io.emit("user:left", { ...leaveMessage, roomBroadcast: false, isBroadcast: true });
         
         // Send updated user count
         io.to(roomId).emit("user:count", userCount);
