@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import ChatApp from "@/components/chat/ChatApp";
-import { useSocket } from "@/lib/socket";
+import { useSocket, initializeSocket } from "@/lib/socket";
 import { Message, MessageType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
@@ -17,27 +17,31 @@ const ChatRoom = () => {
   const [showNicknameModal, setShowNicknameModal] = useState(true);
   const [nicknameError, setNicknameError] = useState<string | undefined>();
   const [roomInfo, setRoomInfo] = useState("");
+  const [joining, setJoining] = useState(false);
 
   // Room is current URL path (or 'lobby' if on homepage)
-  const roomId = location === "/" ? "lobby" : location.substring(1);
+  // Strip any initial "chat/" from the path if present
+  const path = location.startsWith("/chat/") ? location.substring(6) : location.substring(1);
+  const roomId = path || "lobby";
 
   useEffect(() => {
-    if (!socket) {
-      console.log("No socket instance available");
-      return;
-    }
-
-    console.log("Setting up socket listeners");
-
+    // Ensure we have a socket connection
+    const currentSocket = initializeSocket();
+    
+    // Set up debug state
+    console.log(`Room ID: ${roomId}`);
+    console.log(`Initial socket connected: ${currentSocket.connected}`);
+    setIsConnected(currentSocket.connected);
+    
     const onConnect = () => {
       console.log("Socket connected event fired");
       setIsConnected(true);
-      setRoomInfo(`${window.location.host}${location}`);
+      setRoomInfo(`${window.location.host}/chat/${roomId}`);
       
-      // If we already have a nickname, try to join the room
-      if (nickname) {
-        console.log(`Already have nickname (${nickname}), trying to join room ${roomId}`);
-        socket.emit("user:join", { roomId, nickname });
+      // If we already have a nickname and we were trying to join, retry join
+      if (nickname && joining) {
+        console.log(`Retrying join for ${nickname} to room ${roomId}`);
+        currentSocket.emit("user:join", { roomId, nickname });
       }
     };
 
@@ -47,23 +51,33 @@ const ChatRoom = () => {
     };
 
     const onRoomJoin = (data: { count: number }) => {
+      console.log(`Joined room with ${data.count} users`);
       setOnlineCount(data.count);
+      setJoining(false);
+      
+      // Show success toast
+      toast({
+        title: "Joined Successfully",
+        description: `You've joined the chat room as ${nickname}`,
+        variant: "default"
+      });
     };
 
     const onUserCount = (count: number) => {
+      console.log(`User count updated: ${count}`);
       setOnlineCount(count);
     };
 
     const onChatMessage = (message: Message) => {
+      console.log(`Chat message received: ${message.text}`);
       setMessages((prev) => [...prev, message]);
     };
     
     const onPrivateMessage = (message: Message) => {
+      console.log(`Private message received: ${message.text}`);
       setPrivateMessages((prev) => [...prev, message]);
-      // Also add to main message list
       setMessages((prev) => [...prev, message]);
       
-      // Show a toast if the message is from someone else
       if (message.nickname !== nickname) {
         toast({
           title: `Private message from ${message.nickname}`,
@@ -74,19 +88,30 @@ const ChatRoom = () => {
     };
 
     const onUserJoined = (message: Message) => {
+      console.log(`User joined: ${message.nickname}`);
       setMessages((prev) => [...prev, message]);
     };
 
     const onUserLeft = (message: Message) => {
+      console.log(`User left: ${message.nickname}`);
       setMessages((prev) => [...prev, message]);
     };
     
     const onNicknameError = (data: { message: string }) => {
+      console.error(`Nickname error: ${data.message}`);
       setNicknameError(data.message);
       setShowNicknameModal(true);
+      setJoining(false);
+      
+      toast({
+        title: "Nickname Error",
+        description: data.message,
+        variant: "destructive"
+      });
     };
     
     const onMessageError = (data: { message: string }) => {
+      console.error(`Message error: ${data.message}`);
       toast({
         title: "Message Error",
         description: data.message,
@@ -95,63 +120,57 @@ const ChatRoom = () => {
     };
 
     // Connect event listeners
-    socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
-    socket.on("room:join", onRoomJoin);
-    socket.on("user:count", onUserCount);
-    socket.on("chat:message", onChatMessage);
-    socket.on("chat:private", onPrivateMessage);
-    socket.on("user:joined", onUserJoined);
-    socket.on("user:left", onUserLeft);
-    socket.on("error:nickname", onNicknameError);
-    socket.on("error:message", onMessageError);
+    currentSocket.on("connect", onConnect);
+    currentSocket.on("disconnect", onDisconnect);
+    currentSocket.on("room:join", onRoomJoin);
+    currentSocket.on("user:count", onUserCount);
+    currentSocket.on("chat:message", onChatMessage);
+    currentSocket.on("chat:private", onPrivateMessage);
+    currentSocket.on("user:joined", onUserJoined);
+    currentSocket.on("user:left", onUserLeft);
+    currentSocket.on("error:nickname", onNicknameError);
+    currentSocket.on("error:message", onMessageError);
 
     // Clean up event listeners
     return () => {
-      socket.off("connect", onConnect);
-      socket.off("disconnect", onDisconnect);
-      socket.off("room:join", onRoomJoin);
-      socket.off("user:count", onUserCount);
-      socket.off("chat:message", onChatMessage);
-      socket.off("chat:private", onPrivateMessage);
-      socket.off("user:joined", onUserJoined);
-      socket.off("user:left", onUserLeft);
-      socket.off("error:nickname", onNicknameError);
-      socket.off("error:message", onMessageError);
+      currentSocket.off("connect", onConnect);
+      currentSocket.off("disconnect", onDisconnect);
+      currentSocket.off("room:join", onRoomJoin);
+      currentSocket.off("user:count", onUserCount);
+      currentSocket.off("chat:message", onChatMessage);
+      currentSocket.off("chat:private", onPrivateMessage);
+      currentSocket.off("user:joined", onUserJoined);
+      currentSocket.off("user:left", onUserLeft);
+      currentSocket.off("error:nickname", onNicknameError);
+      currentSocket.off("error:message", onMessageError);
     };
-  }, [socket, location, nickname, roomId, toast]);
+  }, [roomId, nickname, joining, toast]);
 
   const handleSetNickname = (name: string) => {
     if (!name.trim()) return;
     
+    // Get the current socket instance
+    const currentSocket = initializeSocket();
+    
     console.log(`Attempting to join room: ${roomId} with nickname: ${name}`);
-    console.log(`Socket connected: ${Boolean(socket)}, isConnected: ${isConnected}`);
+    console.log(`Socket connected: ${currentSocket.connected}`);
     
     setNickname(name);
     setNicknameError(undefined);
     setShowNicknameModal(false);
+    setJoining(true);
     
-    if (socket && isConnected) {
-      console.log(`Emitting user:join event to room: ${roomId}`);
-      socket.emit("user:join", { roomId, nickname: name });
+    // If socket is connected, emit join event
+    if (currentSocket.connected) {
+      console.log(`Socket is connected, emitting user:join event to room: ${roomId}`);
+      currentSocket.emit("user:join", { roomId, nickname: name });
     } else {
-      console.error("Cannot join: Socket not connected");
+      // If socket is not connected, connect it and try again
+      console.log("Socket not connected, connecting now...");
+      currentSocket.connect();
       
-      // Add fallback for connection issues - try to initialize socket again
-      if (socket && !isConnected) {
-        console.log("Attempting to reconnect socket...");
-        socket.connect();
-        
-        // Wait a bit and try to join again
-        setTimeout(() => {
-          if (socket.connected) {
-            console.log("Socket reconnected, trying to join again");
-            socket.emit("user:join", { roomId, nickname: name });
-          } else {
-            console.error("Socket reconnection failed");
-          }
-        }, 1000);
-      }
+      // After connecting, we'll join in the onConnect handler
+      // since we set joining = true and have the nickname
     }
   };
 
