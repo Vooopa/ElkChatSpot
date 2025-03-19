@@ -213,6 +213,16 @@ ${entryCode}
       }
     });
     
+    // Get latest visitors list
+    socket.on("webpage:getVisitors", (data: { roomId: string }) => {
+      const { roomId } = data;
+      if (!roomId) return;
+      
+      console.log(`Sending updated visitor list for room ${roomId}`);
+      const visitors = storage.getWebpageVisitors(roomId);
+      socket.emit("webpage:visitors", Array.from(visitors.values()));
+    });
+    
     // Handle user status change on webpage
     socket.on("webpage:updateStatus", ({ roomId, status }) => {
       if (currentRoom && isWebpageVisitor && Object.values(UserStatus).includes(status)) {
