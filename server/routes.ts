@@ -274,13 +274,17 @@ ${entryCode}
 
     // Handle user sending a message
     socket.on("chat:message", (message: Message) => {
-      if (!message.roomId || !message.text || !message.nickname) return;
+      if (!message.roomId || !message.text || !message.nickname) {
+        console.log("❌ Invalid message format", message);
+        return;
+      }
       
       // Update activity timestamp if this is a webpage visitor
       if (isWebpageVisitor && currentRoom) {
         storage.updateWebpageVisitorActivity(currentRoom, socket.id);
       }
       
+      // Add required fields to the message
       const completeMessage: Message = {
         ...message,
         type: message.type || MessageType.USER_MESSAGE,
@@ -288,28 +292,16 @@ ${entryCode}
         senderSocketId: socket.id
       };
       
-      // Check if this is a private message
+      // Is this a private message request?
       if (message.type === MessageType.PRIVATE_MESSAGE && message.recipient) {
-        // Find the recipient's socket ID
-        const recipientSocketId = storage.getSocketIdByNickname(message.roomId, message.recipient);
-        
-        if (recipientSocketId) {
-          // Send to recipient
-          io.to(recipientSocketId).emit("chat:private", completeMessage);
-          // Also send back to sender so they can see their own message
-          socket.emit("chat:private", completeMessage);
-        } else {
-          // Send an error back to the sender
-          socket.emit("error:message", {
-            message: `User '${message.recipient}' was not found or is offline.`
-          });
-        }
-      } else {
-        // Regular message - broadcast to everyone in the room
-        console.log(`Broadcasting message from ${completeMessage.nickname} to room ${message.roomId}`);
-        // Direct targeted emit to the specific room only
-        io.to(message.roomId).emit("chat:message", completeMessage);
+        console.log("Private message request - this should go through chat:private event");
+        // Convert to regular message - private messages should use the chat:private event
+        completeMessage.type = MessageType.USER_MESSAGE;
       }
+      
+      // SUPER SIMPLE: Regular message - broadcast to everyone in the room
+      console.log(`✅ Broadcasting message from ${completeMessage.nickname} to room ${message.roomId}`);
+      io.to(message.roomId).emit("chat:message", completeMessage);
     });
     
     // Handle private message

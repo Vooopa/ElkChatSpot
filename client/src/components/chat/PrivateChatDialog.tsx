@@ -68,96 +68,55 @@ const PrivateChatDialog = ({
         messageTo: message.recipient
       });
       
-      // Check if this is a broadcast message (fallback mode for when direct messaging fails)
-      // @ts-ignore - broadcastPrivate is a custom property we added in our server code
-      const isBroadcastMessage = message.broadcastPrivate === true;
+      // GREATLY simplified message relevance check:
+      // A message is relevant if:
+      // 1. It's from the current user to the recipient we're chatting with, OR
+      // 2. It's from the recipient we're chatting with to the current user
+      const isFromCurrentUser = message.nickname?.toLowerCase() === currentUser?.toLowerCase();
+      const isToCurrentUser = message.recipient?.toLowerCase() === currentUser?.toLowerCase();
+      const isFromRecipient = message.nickname?.toLowerCase() === recipientName?.toLowerCase();
+      const isToRecipient = message.recipient?.toLowerCase() === recipientName?.toLowerCase();
       
-      // For broadcast messages, we need to manually check if we're the intended recipient
-      if (isBroadcastMessage) {
-        console.log("🔵 This is a broadcast private message - checking relevance");
-        // Only proceed if:
-        // 1. Current user is the intended recipient and message is from the current chat partner, OR
-        // 2. Current user is the sender and message is for the current chat partner
-        const userIsRecipient = message.recipient?.toLowerCase() === currentUser?.toLowerCase();
-        const userIsSender = message.nickname?.toLowerCase() === currentUser?.toLowerCase();
-        
-        const chatPartnerIsRecipient = message.recipient?.toLowerCase() === recipientName?.toLowerCase();
-        const chatPartnerIsSender = message.nickname?.toLowerCase() === recipientName?.toLowerCase();
-        
-        const isRelevantBroadcast = 
-          (userIsRecipient && chatPartnerIsSender) || 
-          (userIsSender && chatPartnerIsRecipient);
-        
-        console.log("🔵 Broadcast message relevance:", {
-          userIsRecipient,
-          userIsSender,
-          chatPartnerIsRecipient,
-          chatPartnerIsSender,
-          isRelevantBroadcast
-        });
-        
-        // If not relevant to this chat, ignore it
-        if (!isRelevantBroadcast) {
-          console.log("🔵 Broadcast message not relevant to this chat, ignoring");
-          return;
-        }
-        
-        // If we get here, the broadcast message is relevant
-        console.log("🔵 Broadcast message IS relevant to this chat, showing it");
-      } else {
-        // Normal private message - check relevance as before
-        // IMPORTANT: Always show a private message in the current chat if:
-        // 1. The current user is the sender and recipient is the chat partner, OR
-        // 2. The current user is the recipient and sender is the chat partner
-        const isFromCurrentUser = message.nickname?.toLowerCase() === currentUser?.toLowerCase();
-        const isFromRecipient = message.nickname?.toLowerCase() === recipientName?.toLowerCase();
-        const isToCurrentUser = message.recipient?.toLowerCase() === currentUser?.toLowerCase();
-        const isToRecipient = message.recipient?.toLowerCase() === recipientName?.toLowerCase();
-        
-        const isRelevantMessage = 
-          (isFromCurrentUser && isToRecipient) ||
-          (isFromRecipient && isToCurrentUser);
-        
-        console.log("🔵 Direct message relevance:", {
-          isFromCurrentUser,
-          isFromRecipient,
-          isToCurrentUser,
-          isToRecipient,
-          isRelevantMessage
-        });
-        
-        // If not relevant, ignore this message
-        if (!isRelevantMessage) {
-          return;
-        }
+      const isRelevant = (isFromCurrentUser && isToRecipient) || (isFromRecipient && isToCurrentUser);
+      
+      console.log("🔵 Message relevance check:", {
+        isFromCurrentUser,
+        isToCurrentUser,
+        isFromRecipient,
+        isToRecipient,
+        isRelevant
+      });
+      
+      if (!isRelevant) {
+        console.log("🔵 Message not relevant to this chat, ignoring");
+        return;
       }
       
-      // If we get this far, the message is relevant and should be displayed
-      console.log("🔵 Adding message to conversation with", recipientName);
+      // Message is relevant, so add it to our chat
+      console.log("🔵 Message IS relevant, adding to chat");
       
       // Add to messages state
       setMessages(prevMessages => [...prevMessages, message]);
       
       // Store in chat history
       setChatHistory(prevHistory => {
-        const isFromCurrentUser = message.nickname?.toLowerCase() === currentUser?.toLowerCase();
-        const otherUser = isFromCurrentUser ? 
-          message.recipient! : message.nickname!;
-          
+        const otherUser = isFromCurrentUser ? message.recipient! : message.nickname!;
         const prevMessages = prevHistory.get(otherUser) || [];
         const newHistory = new Map(prevHistory);
         newHistory.set(otherUser, [...prevMessages, message]);
-        
         return newHistory;
       });
     }
 
-    socket.on("chat:private", handlePrivateMessage);
-    
-    return () => {
-      console.log("🔵 Removing private message listener");
-      socket.off("chat:private", handlePrivateMessage);
-    };
+    if (socket) {
+      socket.on("chat:private", handlePrivateMessage);
+      
+      return () => {
+        console.log("🔵 Removing private message listener");
+        socket.off("chat:private", handlePrivateMessage);
+      };
+    }
+    return () => {};
   }, [socket, currentUser, recipientName]);
 
   // Auto-scroll to bottom when new messages arrive
