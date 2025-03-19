@@ -2,16 +2,20 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import ChatApp from "@/components/chat/ChatApp";
 import { useSocket } from "@/lib/socket";
-import { Message } from "@shared/schema";
+import { Message, MessageType } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 const ChatRoom = () => {
   const [location] = useLocation();
   const socket = useSocket();
+  const { toast } = useToast();
   const [isConnected, setIsConnected] = useState(false);
   const [nickname, setNickname] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [privateMessages, setPrivateMessages] = useState<Message[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
   const [showNicknameModal, setShowNicknameModal] = useState(true);
+  const [nicknameError, setNicknameError] = useState<string | undefined>();
   const [roomInfo, setRoomInfo] = useState("");
 
   // Room is current URL path (or 'lobby' if on homepage)
@@ -40,6 +44,21 @@ const ChatRoom = () => {
     const onChatMessage = (message: Message) => {
       setMessages((prev) => [...prev, message]);
     };
+    
+    const onPrivateMessage = (message: Message) => {
+      setPrivateMessages((prev) => [...prev, message]);
+      // Also add to main message list
+      setMessages((prev) => [...prev, message]);
+      
+      // Show a toast if the message is from someone else
+      if (message.nickname !== nickname) {
+        toast({
+          title: `Private message from ${message.nickname}`,
+          description: message.text,
+          variant: "default"
+        });
+      }
+    };
 
     const onUserJoined = (message: Message) => {
       setMessages((prev) => [...prev, message]);
@@ -48,6 +67,19 @@ const ChatRoom = () => {
     const onUserLeft = (message: Message) => {
       setMessages((prev) => [...prev, message]);
     };
+    
+    const onNicknameError = (data: { message: string }) => {
+      setNicknameError(data.message);
+      setShowNicknameModal(true);
+    };
+    
+    const onMessageError = (data: { message: string }) => {
+      toast({
+        title: "Message Error",
+        description: data.message,
+        variant: "destructive"
+      });
+    };
 
     // Connect event listeners
     socket.on("connect", onConnect);
@@ -55,8 +87,11 @@ const ChatRoom = () => {
     socket.on("room:join", onRoomJoin);
     socket.on("user:count", onUserCount);
     socket.on("chat:message", onChatMessage);
+    socket.on("chat:private", onPrivateMessage);
     socket.on("user:joined", onUserJoined);
     socket.on("user:left", onUserLeft);
+    socket.on("error:nickname", onNicknameError);
+    socket.on("error:message", onMessageError);
 
     // Clean up event listeners
     return () => {
@@ -65,15 +100,19 @@ const ChatRoom = () => {
       socket.off("room:join", onRoomJoin);
       socket.off("user:count", onUserCount);
       socket.off("chat:message", onChatMessage);
+      socket.off("chat:private", onPrivateMessage);
       socket.off("user:joined", onUserJoined);
       socket.off("user:left", onUserLeft);
+      socket.off("error:nickname", onNicknameError);
+      socket.off("error:message", onMessageError);
     };
-  }, [socket, location]);
+  }, [socket, location, nickname, toast]);
 
   const handleSetNickname = (name: string) => {
     if (!name.trim()) return;
     
     setNickname(name);
+    setNicknameError(undefined);
     setShowNicknameModal(false);
     
     if (socket && isConnected) {
@@ -84,10 +123,49 @@ const ChatRoom = () => {
   const handleSendMessage = (text: string) => {
     if (!socket || !isConnected || !nickname || !text.trim()) return;
     
+    // Check if this is a private message
+    const privateMessagePrefix = "/pm ";
+    if (text.startsWith(privateMessagePrefix)) {
+      const textWithoutPrefix = text.substring(privateMessagePrefix.length);
+      const firstSpaceIndex = textWithoutPrefix.indexOf(" ");
+      
+      if (firstSpaceIndex > 0) {
+        const recipient = textWithoutPrefix.substring(0, firstSpaceIndex);
+        const privateText = textWithoutPrefix.substring(firstSpaceIndex + 1);
+        
+        if (privateText.trim()) {
+          sendPrivateMessage(recipient, privateText);
+          return;
+        }
+      }
+      
+      // Invalid format, show toast message
+      toast({
+        title: "Invalid Command",
+        description: "To send a private message use: /pm username message",
+        variant: "default"
+      });
+      return;
+    }
+    
+    // Regular message
     socket.emit("chat:message", {
       roomId,
       text,
       nickname,
+      timestamp: new Date().toISOString(),
+    });
+  };
+  
+  const sendPrivateMessage = (recipient: string, text: string) => {
+    if (!socket || !isConnected || !nickname || !text.trim()) return;
+    
+    socket.emit("chat:private", {
+      roomId,
+      text,
+      nickname,
+      recipient,
+      type: MessageType.PRIVATE_MESSAGE,
       timestamp: new Date().toISOString(),
     });
   };
@@ -100,6 +178,7 @@ const ChatRoom = () => {
       onlineCount={onlineCount}
       roomInfo={roomInfo}
       showNicknameModal={showNicknameModal}
+      nicknameError={nicknameError}
       onSetNickname={handleSetNickname}
       onSendMessage={handleSendMessage}
     />
