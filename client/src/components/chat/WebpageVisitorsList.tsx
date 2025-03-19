@@ -2,22 +2,33 @@ import { useState } from "react";
 import type { WebpageVisitor } from "@shared/schema";
 import { UserStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
-import { User, Users, Clock } from "lucide-react";
+import { User, Users, Clock, MessageSquare } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Socket } from "socket.io-client";
 
 interface WebpageVisitorsListProps {
   visitors: WebpageVisitor[];
   currentUser: string; // This is the current user's nickname
   onSetStatus: (status: UserStatus) => void;
   url: string;
+  onStartPrivateChat: (recipientName: string) => void;
+  socket: Socket | null;
 }
 
-const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: WebpageVisitorsListProps) => {
+const WebpageVisitorsList = ({ 
+  visitors, 
+  currentUser, 
+  onSetStatus, 
+  url, 
+  onStartPrivateChat,
+  socket 
+}: WebpageVisitorsListProps) => {
   // Find the current user's visitor object by nickname
   const currentUserVisitor = visitors.find(v => v.nickname === currentUser);
   const [expandedVisitor, setExpandedVisitor] = useState<string | null>(null);
@@ -71,6 +82,13 @@ const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: Webpag
   };
 
   const domain = getDomainFromUrl(url);
+
+  const handleStartPrivateChat = (nickname: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the expand/collapse
+    if (nickname !== currentUser) {
+      onStartPrivateChat(nickname);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col">
@@ -140,9 +158,22 @@ const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: Webpag
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center text-sm text-gray-500">
-                  <Clock className="h-3 w-3 mr-1" />
-                  <span className="text-xs">{formatDistanceToNow(new Date(visitor.joinedAt), { addSuffix: true })}</span>
+                <div className="flex items-center gap-2">
+                  {visitor.nickname !== currentUser && (
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="h-7 w-7"
+                      title={`Chat privately with ${visitor.nickname}`}
+                      onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
+                    >
+                      <MessageSquare className="h-4 w-4 text-blue-500" />
+                    </Button>
+                  )}
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Clock className="h-3 w-3 mr-1" />
+                    <span className="text-xs">{formatDistanceToNow(new Date(visitor.joinedAt), { addSuffix: true })}</span>
+                  </div>
                 </div>
               </div>
               

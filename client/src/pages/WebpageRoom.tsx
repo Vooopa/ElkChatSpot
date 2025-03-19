@@ -6,6 +6,7 @@ import { UserStatus, normalizeUrl, MessageType } from "@shared/schema";
 import WebpageVisitorsList from "@/components/chat/WebpageVisitorsList";
 import WebpageUrlInput from "@/components/chat/WebpageUrlInput";
 import NicknameModal from "@/components/chat/NicknameModal";
+import PrivateChatDialog from "@/components/chat/PrivateChatDialog";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageArea from "@/components/chat/MessageArea";
 import Header from "@/components/chat/Header";
@@ -35,6 +36,10 @@ const WebpageRoom = () => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [url, setUrl] = useState<string>("");
   const [currentUser, setCurrentUser] = useState<string>("");
+  
+  // Private chat state
+  const [privateChatOpen, setPrivateChatOpen] = useState(false);
+  const [privateChatRecipient, setPrivateChatRecipient] = useState("");
 
   // Set up socket connection when the component loads
   useEffect(() => {
@@ -466,6 +471,17 @@ const WebpageRoom = () => {
     }
   };
 
+  // Handle starting a private chat
+  const handleStartPrivateChat = (recipientName: string) => {
+    setPrivateChatRecipient(recipientName);
+    setPrivateChatOpen(true);
+  };
+  
+  // Handle closing the private chat dialog
+  const handleClosePrivateChat = () => {
+    setPrivateChatOpen(false);
+  };
+  
   // Format domain name for display
   const getDomainFromUrl = (urlString: string) => {
     try {
