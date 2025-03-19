@@ -43,6 +43,7 @@ export interface WebpageVisitor {
   joinedAt: string;
   status: UserStatus;
   lastActivity: string;
+  unreadMessages?: number; // Track unread message count
 }
 
 export interface ChatRoom {
