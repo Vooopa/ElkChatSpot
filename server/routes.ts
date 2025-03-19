@@ -338,6 +338,8 @@ ${entryCode}
         io.to(recipientSocketId).emit("chat:private", completeMessage);
         // Also send back to sender so they can see their own message
         socket.emit("chat:private", completeMessage);
+        // Global broadcast to help with cross-tab visibility
+        io.emit("chat:private", completeMessage);
       } else {
         // Send an error back to the sender
         socket.emit("error:message", {
@@ -396,8 +398,9 @@ ${entryCode}
           type: MessageType.USER_LEFT
         };
         
-        // Send leave notification to everyone in the room
+        // Send leave notification to everyone in the room and broadcast globally
         io.to(roomId).emit("user:left", leaveMessage);
+        io.emit("user:left", leaveMessage); // Global broadcast to help with cross-tab visibility
         
         // Send updated user count
         io.to(roomId).emit("user:count", userCount);

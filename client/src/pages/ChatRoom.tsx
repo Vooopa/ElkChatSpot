@@ -72,31 +72,82 @@ const ChatRoom = () => {
     // Message events
     newSocket.on("chat:message", (message: Message) => {
       console.log(`Chat message received:`, message);
-      setMessages((prev) => [...prev, message]);
+      // Check if this message is for our room
+      if (message.roomId === roomId) {
+        // Check for duplicates
+        const isDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.text === message.text
+        );
+        
+        if (!isDuplicate) {
+          setMessages((prev) => [...prev, message]);
+        }
+      }
     });
     
     newSocket.on("chat:private", (message: Message) => {
       console.log(`Private message received:`, message);
-      setMessages((prev) => [...prev, message]);
-      
-      if (message.nickname !== nickname) {
-        toast({
-          title: `Private message from ${message.nickname}`,
-          description: message.text,
-          variant: "default"
-        });
+      // Check if this private message is for our room
+      if (message.roomId === roomId) {
+        // Check for duplicates
+        const isDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.text === message.text &&
+               m.recipient === message.recipient &&
+               m.type === MessageType.PRIVATE_MESSAGE
+        );
+        
+        if (!isDuplicate) {
+          setMessages((prev) => [...prev, message]);
+          
+          // Show toast for incoming private messages
+          if (message.nickname !== nickname) {
+            toast({
+              title: `Private message from ${message.nickname}`,
+              description: message.text,
+              variant: "default"
+            });
+          }
+        }
       }
     });
 
     // User presence events
     newSocket.on("user:joined", (message: Message) => {
       console.log(`User joined:`, message);
-      setMessages((prev) => [...prev, message]);
+      // Check if this event is for our room
+      if (message.roomId === roomId) {
+        // Check for duplicates
+        const isDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.type === MessageType.USER_JOINED
+        );
+        
+        if (!isDuplicate) {
+          setMessages((prev) => [...prev, message]);
+        }
+      }
     });
 
     newSocket.on("user:left", (message: Message) => {
       console.log(`User left:`, message);
-      setMessages((prev) => [...prev, message]);
+      // Check if this event is for our room
+      if (message.roomId === roomId) {
+        // Check for duplicates
+        const isDuplicate = messages.some(
+          m => m.timestamp === message.timestamp && 
+               m.nickname === message.nickname && 
+               m.type === MessageType.USER_LEFT
+        );
+        
+        if (!isDuplicate) {
+          setMessages((prev) => [...prev, message]);
+        }
+      }
     });
     
     // Error events
@@ -129,7 +180,7 @@ const ChatRoom = () => {
       console.log("Cleaning up socket listeners");
       newSocket.disconnect();
     };
-  }, []);
+  }, [messages, nickname, roomId, toast]);
 
   // Handle joining a room with a nickname
   const handleSetNickname = (name: string) => {

@@ -131,15 +131,56 @@ export default function WidgetChat() {
   }, [socket, nickname, params.url, roomId]);
 
   const onVisitorJoined = (message: Message) => {
-    setMessages(prev => [...prev, message]);
+    console.log("Visitor joined:", message);
+    // Check for both exact match and normalized URL match for roomId
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
+      // Check if we already have this message to avoid duplicates
+      const isDuplicate = messages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_JOINED
+      );
+      
+      if (!isDuplicate) {
+        // Add join message to chat
+        setMessages(prev => [...prev, message]);
+      }
+    }
   };
 
   const onVisitorLeft = (message: Message) => {
-    setMessages(prev => [...prev, message]);
+    console.log("Visitor left:", message);
+    // Check for both exact match and normalized URL match for roomId
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
+      // Check if we already have this message to avoid duplicates
+      const isDuplicate = messages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.type === MessageType.USER_LEFT
+      );
+      
+      if (!isDuplicate) {
+        // Add leave message to chat
+        setMessages(prev => [...prev, message]);
+      }
+    }
   };
 
   const onChatMessage = (message: Message) => {
-    setMessages(prev => [...prev, message]);
+    console.log("Chat message received:", message);
+    // Handle messages for the current room, even if they're broadcast globally
+    if (message.roomId === roomId || normalizeUrl(message.roomId) === normalizeUrl(roomId)) {
+      // Check if we already have this message to avoid duplicates
+      const isDuplicate = messages.some(
+        m => m.timestamp === message.timestamp && 
+             m.nickname === message.nickname && 
+             m.text === message.text
+      );
+      
+      if (!isDuplicate) {
+        setMessages(prev => [...prev, message]);
+      }
+    }
   };
 
   const handleSetNickname = (name: string) => {
