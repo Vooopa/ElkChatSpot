@@ -331,11 +331,17 @@ ${entryCode}
       // Find the recipient's socket ID
       const recipientSocketId = storage.getSocketIdByNickname(message.roomId, message.recipient);
       
+      console.log(`Private message from ${message.nickname} to ${message.recipient}`, { 
+        recipientFound: !!recipientSocketId,
+        senderSocketId: socket.id,
+        recipientSocketId
+      });
+      
       if (recipientSocketId) {
-        // Send to recipient with direct flag
-        io.to(recipientSocketId).emit("chat:private", { ...completeMessage, roomBroadcast: true, isBroadcast: false });
-        // Also send back to sender with direct flag
-        socket.emit("chat:private", { ...completeMessage, roomBroadcast: true, isBroadcast: false });
+        // Send to recipient
+        io.to(recipientSocketId).emit("chat:private", completeMessage);
+        // Also send back to sender
+        socket.emit("chat:private", completeMessage);
       } else {
         // Send an error back to the sender
         socket.emit("error:message", {
