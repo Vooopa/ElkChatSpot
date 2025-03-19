@@ -12,12 +12,14 @@ import {
 
 interface WebpageVisitorsListProps {
   visitors: WebpageVisitor[];
-  currentUser: string;
+  currentUser: string; // This is the current user's nickname
   onSetStatus: (status: UserStatus) => void;
   url: string;
 }
 
 const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: WebpageVisitorsListProps) => {
+  // Find the current user's visitor object by nickname
+  const currentUserVisitor = visitors.find(v => v.nickname === currentUser);
   const [expandedVisitor, setExpandedVisitor] = useState<string | null>(null);
 
   // Helper functions for status visualization
@@ -87,7 +89,7 @@ const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: Webpag
           <DropdownMenuTrigger className="flex items-center text-sm text-gray-600 hover:text-gray-900 focus:outline-none">
             <div className="flex items-center">
               <div className={`w-2 h-2 rounded-full mr-1 ${getStatusColor(
-                visitors.find(v => v.socketId === currentUser)?.status || UserStatus.ACTIVE
+                currentUserVisitor?.status || UserStatus.ACTIVE
               )}`}></div>
               <span>Status</span>
             </div>
@@ -115,7 +117,7 @@ const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: Webpag
             <li 
               key={visitor.socketId} 
               className={`p-2 hover:bg-gray-50 rounded-md transition-colors ${
-                visitor.socketId === currentUser ? "bg-blue-50" : ""
+                visitor.nickname === currentUser ? "bg-blue-50" : ""
               }`}
               onClick={() => setExpandedVisitor(
                 expandedVisitor === visitor.socketId ? null : visitor.socketId
@@ -132,7 +134,7 @@ const WebpageVisitorsList = ({ visitors, currentUser, onSetStatus, url }: Webpag
                   <div className="ml-3">
                     <p className="text-sm font-medium text-gray-700 flex items-center">
                       {visitor.nickname}
-                      {visitor.socketId === currentUser && (
+                      {visitor.nickname === currentUser && (
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
                     </p>
