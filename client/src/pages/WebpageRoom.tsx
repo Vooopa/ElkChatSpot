@@ -14,24 +14,43 @@ import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
-// Simple notification helper
+// Migliorata la funzione di notifica sonora
 const playNotificationSound = () => {
   try {
+    console.log("🔊 Riproduzione suono di notifica");
+    
+    // Crea un contesto audio
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
     
-    oscillator.type = 'sine';
-    oscillator.frequency.value = 880; // A5 note
-    gainNode.gain.value = 0.1; // Quiet volume
+    // Suono più complesso e piacevole - due note in sequenza
+    const playTone = (freq: number, duration: number, delay: number = 0) => {
+      setTimeout(() => {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.value = freq;
+        
+        // Fade in/out per un suono più piacevole
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
+        gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + duration);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        oscillator.start();
+        setTimeout(() => oscillator.stop(), duration * 1000);
+      }, delay);
+    };
     
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+    // Suona due note in sequenza (suono di notifica tipo "ding-dong")
+    playTone(880, 0.15); // La nota più alta
+    playTone(660, 0.2, 150); // La nota più bassa, con ritardo
     
-    oscillator.start();
-    setTimeout(() => oscillator.stop(), 200);
+    console.log("🔊 Suono di notifica riprodotto");
   } catch (e) {
-    console.error("Audio playback failed", e);
+    console.error("🔊 Errore nella riproduzione audio", e);
   }
 };
 
@@ -198,13 +217,14 @@ const WebpageRoom = () => {
     });
     
     socket.on("chat:private", (message) => {
-      console.log("📩 Received chat:private event", message);
+      console.log("📩 [IMPORTANTE] Ricevuto messaggio privato", message);
+      logCurrentState("chat:private event");
       
-      // Verifica direttamente se sono il destinatario o il mittente
-      const isToMe = message.recipient?.toLowerCase() === nickname?.toLowerCase();
-      const isFromMe = message.nickname?.toLowerCase() === nickname?.toLowerCase();
+      // Semplifica al massimo il controllo
+      const isToMe = message.recipient === nickname;
+      const isFromMe = message.nickname === nickname;
       
-      console.log(`📩 [PRIVATE] Verifica messaggio privato:`, {
+      console.log(`📩 [PRIVATE] Dettagli messaggio:`, {
         isToMe, 
         isFromMe,
         myNickname: nickname, 
@@ -212,32 +232,43 @@ const WebpageRoom = () => {
         messageTo: message.recipient
       });
       
-      // Se il messaggio è PER me (e non DA me), notifichiamo l'utente
+      // Sei tu il destinatario?
       if (isToMe && !isFromMe) {
-        console.log("📩 [PRIVATE] Messaggio privato diretto a me, notifico");
+        console.log("📩 [PRIVATE] Sei tu il destinatario del messaggio!");
         
-        // Aggiorna conteggio messaggi non letti
+        // IMPORTANTE: aggiorna contatori messaggi non letti
+        const fromUser = message.nickname || '';
+        console.log(`📩 [PRIVATE] Incremento contatore per ${fromUser}`);
+        
+        // Forza un aggiornamento sincrono del contatore
         setVisitors(prevVisitors => {
-          return prevVisitors.map(visitor => {
-            if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
+          const newVisitors = prevVisitors.map(visitor => {
+            if (visitor.nickname === fromUser) {
+              const newCount = (visitor.unreadMessages || 0) + 1;
+              console.log(`📩 [PRIVATE] Contatore aggiornato: ${visitor.unreadMessages} -> ${newCount}`);
               return {
                 ...visitor,
-                unreadMessages: (visitor.unreadMessages || 0) + 1
+                unreadMessages: newCount
               };
             }
             return visitor;
           });
+          
+          console.log('📩 [PRIVATE] Visitors dopo aggiornamento:', 
+            newVisitors.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
+          
+          return newVisitors;
         });
         
-        // Riproduci suono di notifica
+        // Suona la notifica
         playNotificationSound();
         
         // Mostra notifica toast
         toast({
           title: `Nuovo messaggio da ${message.nickname}`,
           description: message.text,
-          variant: "default",
-          duration: 5000,
+          variant: "destructive", // più evidente
+          duration: 8000, // più a lungo
           action: (
             <div 
               className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
@@ -248,13 +279,20 @@ const WebpageRoom = () => {
           )
         });
         
-        // Apri automaticamente la finestra di chat 
+        // Apri automaticamente la chat
+        console.log(`📩 [PRIVATE] Apro automaticamente chat con ${message.nickname}`);
         handleStartPrivateChat(message.nickname || "");
-        
-        console.log("📩 [PRIVATE] Notifica e finestra di chat aperte");
+      } else if (isFromMe) {
+        console.log("📩 [PRIVATE] Questo è un messaggio inviato da te");
       } else {
-        console.log("📩 [PRIVATE] Messaggio privato non richiede notifica");
+        console.log("📩 [PRIVATE] Questo messaggio non è per te");
       }
+      
+      // Per debug, controlla i contatori dopo un attimo
+      setTimeout(() => {
+        console.log('📩 [CHECK] Visitors dopo timeout:', 
+          visitors.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
+      }, 1000);
     });
     
     // Handle visitor events
