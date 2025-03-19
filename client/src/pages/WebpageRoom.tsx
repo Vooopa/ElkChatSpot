@@ -84,6 +84,13 @@ const WebpageRoom = () => {
       }
     }
   }, [params.url]);
+  
+  // Debug socket ID changes to help with troubleshooting
+  useEffect(() => {
+    if (socket) {
+      console.log("Current socket ID:", socket.id);
+    }
+  }, [socket?.id]);
 
   // Set up socket event listeners when socket or roomId changes
   useEffect(() => {
@@ -271,14 +278,12 @@ const WebpageRoom = () => {
     };
     
     console.log("Sending chat message:", message);
+    
+    // Send message to server
     socket.emit("chat:message", message);
     
-    // Also add message to our local state for immediate feedback
-    const localMessage = {
-      ...message,
-      senderSocketId: socket.id // Add sender ID to identify our own messages
-    };
-    setMessages(prev => [...prev, localMessage]);
+    // We no longer add to local state directly - we'll rely on the server echoing back
+    // the message with any additional data that might be necessary
   };
 
   const sendPrivateMessage = (recipient: string, text: string) => {
@@ -304,15 +309,8 @@ const WebpageRoom = () => {
     console.log("Sending private message:", message);
     socket.emit("chat:private", message);
     
-    // Also add message to our local state for immediate feedback
-    const localMessage = {
-      ...message,
-      senderSocketId: socket.id // Add sender ID to identify our own messages
-    };
-    
-    // Add to both message lists
-    setMessages(prev => [...prev, localMessage]);
-    setPrivateMessages(prev => [...prev, localMessage]);
+    // Private messages are echoed back by the server as well,
+    // so we don't need to add them to the local state here
   };
 
   const handleSetStatus = (status: UserStatus) => {
@@ -438,7 +436,7 @@ const WebpageRoom = () => {
         <div className="w-1/4 border-l overflow-hidden">
           <WebpageVisitorsList 
             visitors={visitors} 
-            currentUser={currentUser}
+            currentUser={nickname || currentUser}
             onSetStatus={handleSetStatus}
             url={url}
           />
