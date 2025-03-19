@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { getSocket, initializeSocket } from "@/lib/socket";
+import { io, Socket } from "socket.io-client";
 import type { Message, WebpageVisitor } from "@shared/schema";
 import { UserStatus, normalizeUrl, MessageType } from "@shared/schema";
 import WebpageVisitorsList from "@/components/chat/WebpageVisitorsList";
@@ -17,17 +17,59 @@ const WebpageRoom = () => {
   const params = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  // Socket and connection state
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  
+  // UI state
   const [showUrlInput, setShowUrlInput] = useState(true);
   const [showNicknameModal, setShowNicknameModal] = useState(false);
   const [nicknameError, setNicknameError] = useState<string | undefined>();
+  
+  // User and page state
   const [nickname, setNickname] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [privateMessages, setPrivateMessages] = useState<Message[]>([]);
   const [visitors, setVisitors] = useState<WebpageVisitor[]>([]);
   const [roomId, setRoomId] = useState<string | null>(null);
   const [url, setUrl] = useState<string>("");
-  const [isConnected, setIsConnected] = useState(false);
   const [currentUser, setCurrentUser] = useState<string>("");
+
+  // Set up socket connection when the component loads
+  useEffect(() => {
+    // Create a new socket with connection options
+    const newSocket = io(window.location.origin, {
+      path: "/api/socket.io",
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5
+    });
+    
+    // Set up event listeners for connection status
+    newSocket.on("connect", () => {
+      console.log("Webpage socket connected with ID:", newSocket.id);
+      setIsConnected(true);
+      
+      if (newSocket.id) {
+        setCurrentUser(newSocket.id);
+      }
+    });
+
+    newSocket.on("disconnect", () => {
+      console.log("Webpage socket disconnected");
+      setIsConnected(false);
+    });
+    
+    // Save socket to state
+    setSocket(newSocket);
+
+    // Clean up on unmount
+    return () => {
+      console.log("Cleaning up webpage socket");
+      newSocket.disconnect();
+    };
+  }, []);
 
   // Parse URL from route parameters if present
   useEffect(() => {
@@ -44,6 +86,61 @@ const WebpageRoom = () => {
     }
   }, [params.url]);
 
+  // Set up socket event listeners when socket or roomId changes
+  useEffect(() => {
+    if (!socket) return;
+    
+    // Error events
+    const handleNicknameError = (data: { message: string }) => {
+      console.error("Nickname error:", data.message);
+      setNicknameError(data.message);
+      setShowNicknameModal(true);
+    };
+    
+    const handleMessageError = (data: { message: string }) => {
+      console.error("Message error:", data.message);
+      toast({
+        title: "Message Error",
+        description: data.message,
+        variant: "destructive"
+      });
+    };
+    
+    const handleRoomInfo = (data: { roomId: string, url: string, title: string }) => {
+      console.log("Received room info:", data);
+      setRoomId(data.roomId);
+      // Update URL route with room ID
+      setLocation(`/webpage/${encodeURIComponent(url)}`);
+    };
+    
+    const handleVisitorList = (roomVisitors: WebpageVisitor[]) => {
+      console.log("Received visitor list:", roomVisitors);
+      setVisitors(roomVisitors);
+    };
+    
+    // Register event listeners
+    socket.on("error:nickname", handleNicknameError);
+    socket.on("error:message", handleMessageError);
+    socket.on("webpage:room", handleRoomInfo);
+    socket.on("webpage:visitors", handleVisitorList);
+    socket.on("chat:message", onChatMessage);
+    socket.on("chat:private", onPrivateMessage);
+    socket.on("visitor:joined", onVisitorJoined);
+    socket.on("visitor:left", onVisitorLeft);
+    
+    // Clean up event listeners
+    return () => {
+      socket.off("error:nickname", handleNicknameError);
+      socket.off("error:message", handleMessageError);
+      socket.off("webpage:room", handleRoomInfo);
+      socket.off("webpage:visitors", handleVisitorList);
+      socket.off("chat:message", onChatMessage);
+      socket.off("chat:private", onPrivateMessage);
+      socket.off("visitor:joined", onVisitorJoined);
+      socket.off("visitor:left", onVisitorLeft);
+    };
+  }, [socket, url, toast, setLocation]);
+
   const handleUrlSubmit = (submittedUrl: string) => {
     setUrl(submittedUrl);
     setShowUrlInput(false);
@@ -51,74 +148,26 @@ const WebpageRoom = () => {
   };
 
   const handleSetNickname = (newNickname: string) => {
+    if (!socket || !isConnected) {
+      setNicknameError("Socket not connected yet. Please try again.");
+      return;
+    }
+    
     setNickname(newNickname);
     setNicknameError(undefined);
+    setShowNicknameModal(false);
     
-    // Initialize socket connection after nickname is set
-    const socket = getSocket() || initializeSocket();
-    
-    socket.on("connect", () => {
-      setIsConnected(true);
-      
-      if (socket.id) {
-        setCurrentUser(socket.id);
-      }
-      
-      // Join webpage-specific room
-      socket.emit("webpage:join", {
-        url: normalizeUrl(url),
-        nickname: newNickname
-      });
+    // Join webpage-specific room
+    console.log(`Joining webpage with URL: ${url}, nickname: ${newNickname}`);
+    socket.emit("webpage:join", {
+      url: normalizeUrl(url),
+      nickname: newNickname,
+      pageTitle: `Chat about ${getDomainFromUrl(url)}`
     });
-
-    socket.on("disconnect", () => {
-      setIsConnected(false);
-    });
-
-    socket.on("error:nickname", (data: { message: string }) => {
-      setNicknameError(data.message);
-      setShowNicknameModal(true);
-    });
-
-    socket.on("error:message", (data: { message: string }) => {
-      toast({
-        title: "Message Error",
-        description: data.message,
-        variant: "destructive"
-      });
-    });
-
-    socket.on("webpage:room", (data: { roomId: string, url: string, title: string }) => {
-      setRoomId(data.roomId);
-      // Update URL route with room ID
-      setLocation(`/webpage/${encodeURIComponent(url)}`);
-    });
-
-    socket.on("webpage:visitors", (roomVisitors: WebpageVisitor[]) => {
-      setVisitors(roomVisitors);
-    });
-
-    socket.on("chat:message", onChatMessage);
-    socket.on("chat:private", onPrivateMessage);
-    socket.on("visitor:joined", onVisitorJoined);
-    socket.on("visitor:left", onVisitorLeft);
-
-    return () => {
-      socket.off("connect");
-      socket.off("disconnect");
-      socket.off("error:nickname");
-      socket.off("error:message");
-      socket.off("webpage:room");
-      socket.off("webpage:visitors");
-      socket.off("chat:message");
-      socket.off("chat:private");
-      socket.off("visitor:joined");
-      socket.off("visitor:left");
-    };
   };
 
   const handleSendMessage = (text: string) => {
-    if (!text.trim() || !roomId) return;
+    if (!socket || !isConnected || !nickname || !text.trim() || !roomId) return;
     
     // Check if this is a private message
     const privateMessagePrefix = "/pm ";
@@ -146,63 +195,67 @@ const WebpageRoom = () => {
     }
     
     // Regular message
-    const socket = getSocket();
-    if (socket && isConnected) {
-      const message: Message = {
-        roomId,
-        text,
-        type: MessageType.USER_MESSAGE,
-        nickname
-      };
-      socket.emit("chat:message", message);
-    }
+    const message: Message = {
+      roomId,
+      text,
+      type: MessageType.USER_MESSAGE,
+      nickname,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log("Sending chat message:", message);
+    socket.emit("chat:message", message);
   };
 
   const sendPrivateMessage = (recipient: string, text: string) => {
-    if (!text.trim() || !roomId) return;
+    if (!socket || !isConnected || !nickname || !text.trim() || !roomId) return;
     
-    const socket = getSocket();
-    if (socket && isConnected) {
-      const message: Message = {
-        roomId,
-        text,
-        type: MessageType.PRIVATE_MESSAGE,
-        nickname,
-        recipient
-      };
-      socket.emit("chat:private", message);
-    }
+    const message: Message = {
+      roomId,
+      text,
+      type: MessageType.PRIVATE_MESSAGE,
+      nickname,
+      recipient,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log("Sending private message:", message);
+    socket.emit("chat:private", message);
   };
 
   const handleSetStatus = (status: UserStatus) => {
-    const socket = getSocket();
-    if (socket && isConnected && roomId) {
-      socket.emit("webpage:updateStatus", {
-        roomId,
-        status
-      });
-    }
+    if (!socket || !isConnected || !roomId) return;
+    
+    console.log(`Setting status to ${status}`);
+    socket.emit("webpage:updateStatus", {
+      roomId,
+      status
+    });
   };
 
   const onVisitorJoined = (message: Message) => {
+    console.log("Visitor joined:", message);
     if (message.roomId === roomId) {
       setMessages(prev => [...prev, message]);
     }
   };
 
   const onVisitorLeft = (message: Message) => {
+    console.log("Visitor left:", message);
     if (message.roomId === roomId) {
       setMessages(prev => [...prev, message]);
     }
   };
 
   const onChatMessage = (message: Message) => {
+    console.log("Chat message received:", message);
     if (message.roomId === roomId) {
       setMessages(prev => [...prev, message]);
     }
   };
   
   const onPrivateMessage = (message: Message) => {
+    console.log("Private message received:", message);
     if (message.roomId === roomId) {
       setPrivateMessages(prev => [...prev, message]);
       // Also add to main message list

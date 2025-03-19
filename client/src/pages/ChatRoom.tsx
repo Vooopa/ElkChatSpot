@@ -1,11 +1,11 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useLocation } from "wouter";
 import { io, Socket } from "socket.io-client";
-import ChatApp from "@/components/chat/ChatApp";
 import { Message, MessageType } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import ChatApp from "@/components/chat/ChatApp";
 
-// Main ChatRoom component - now simplified based on the working demo
+// Main ChatRoom component - simplified by following SimpleChatDemo approach
 const ChatRoom = () => {
   const [location] = useLocation();
   const { toast } = useToast();
@@ -17,14 +17,13 @@ const ChatRoom = () => {
   // User and message state
   const [nickname, setNickname] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [privateMessages, setPrivateMessages] = useState<Message[]>([]);
   const [onlineCount, setOnlineCount] = useState(0);
   
   // UI state
   const [showNicknameModal, setShowNicknameModal] = useState(true);
   const [nicknameError, setNicknameError] = useState<string | undefined>();
   const [roomInfo, setRoomInfo] = useState("");
-  const [joining, setJoining] = useState(false);
+  const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
 
   // Parse the room ID from the URL or use 'lobby' as default
   const path = location.startsWith("/chat/") ? location.substring(6) : location.substring(1);
@@ -32,16 +31,12 @@ const ChatRoom = () => {
 
   // Initialize the socket connection
   useEffect(() => {
-    console.log("Setting up socket connection for ChatRoom");
-    
     // Create a new socket with connection options
     const newSocket = io(window.location.origin, {
       path: "/api/socket.io",
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 20000,
+      reconnectionAttempts: 5
     });
     
     // Set up event listeners for connection status
@@ -49,12 +44,6 @@ const ChatRoom = () => {
       console.log("Socket connected with ID:", newSocket.id);
       setIsConnected(true);
       setRoomInfo(`${window.location.host}/chat/${roomId}`);
-      
-      // If we already have a nickname and we were trying to join, retry join
-      if (nickname && joining) {
-        console.log(`Retrying join for ${nickname} to room ${roomId}`);
-        newSocket.emit("user:join", { roomId, nickname });
-      }
     });
 
     newSocket.on("disconnect", () => {
@@ -66,7 +55,7 @@ const ChatRoom = () => {
     newSocket.on("room:join", (data: { count: number }) => {
       console.log(`Joined room with ${data.count} users`);
       setOnlineCount(data.count);
-      setJoining(false);
+      setHasJoinedRoom(true);
       
       toast({
         title: "Joined Successfully",
@@ -88,7 +77,6 @@ const ChatRoom = () => {
     
     newSocket.on("chat:private", (message: Message) => {
       console.log(`Private message received:`, message);
-      setPrivateMessages((prev) => [...prev, message]);
       setMessages((prev) => [...prev, message]);
       
       if (message.nickname !== nickname) {
@@ -116,7 +104,6 @@ const ChatRoom = () => {
       console.error(`Nickname error:`, data);
       setNicknameError(data.message);
       setShowNicknameModal(true);
-      setJoining(false);
       
       toast({
         title: "Nickname Error",
@@ -137,28 +124,26 @@ const ChatRoom = () => {
     // Save socket to state
     setSocket(newSocket);
 
-    // Only disconnect when the component is fully unmounted
+    // Clean up on unmount
     return () => {
-      console.log("Component unmounting, disconnecting socket");
+      console.log("Cleaning up socket listeners");
       newSocket.disconnect();
     };
-  }, [roomId, nickname, joining, toast]);
+  }, []);
 
   // Handle joining a room with a nickname
   const handleSetNickname = (name: string) => {
     if (!name.trim()) return;
     
-    if (!socket) {
-      setNicknameError("Socket not initialized yet. Please try again.");
+    if (!socket || !isConnected) {
+      setNicknameError("Socket not connected yet. Please try again.");
       return;
     }
     
     console.log(`Attempting to join room: ${roomId} with nickname: ${name}`);
-    
     setNickname(name);
     setNicknameError(undefined);
     setShowNicknameModal(false);
-    setJoining(true);
     
     // Emit join event
     socket.emit("user:join", { roomId, nickname: name });
@@ -166,7 +151,7 @@ const ChatRoom = () => {
 
   // Handle sending a chat message
   const handleSendMessage = (text: string) => {
-    if (!socket || !isConnected || !nickname || !text.trim()) return;
+    if (!socket || !isConnected || !nickname || !text.trim() || !hasJoinedRoom) return;
     
     // Check if this is a private message
     const privateMessagePrefix = "/pm ";
@@ -204,7 +189,7 @@ const ChatRoom = () => {
   
   // Handle sending a private message
   const sendPrivateMessage = (recipient: string, text: string) => {
-    if (!socket || !isConnected || !nickname || !text.trim()) return;
+    if (!socket || !isConnected || !nickname || !text.trim() || !hasJoinedRoom) return;
     
     socket.emit("chat:private", {
       roomId,
@@ -215,18 +200,6 @@ const ChatRoom = () => {
       timestamp: new Date().toISOString(),
     });
   };
-
-  // Show a loading state if trying to join
-  if (joining && !showNicknameModal) {
-    return (
-      <div className="flex flex-col h-screen items-center justify-center">
-        <div className="text-xl font-semibold mb-4">Connecting to chat...</div>
-        <div className="animate-pulse bg-blue-100 rounded-full h-12 w-12 flex items-center justify-center">
-          <div className="h-8 w-8 rounded-full bg-blue-500"></div>
-        </div>
-      </div>
-    );
-  }
 
   // Render the UI
   return (
