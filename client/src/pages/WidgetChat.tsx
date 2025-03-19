@@ -149,7 +149,7 @@ export default function WidgetChat() {
     // If we already have a socket connection and URL, join the room now
     if (socket && params.url) {
       const url = decodeURIComponent(params.url);
-      socket.emit("webpage:join", { url: normalizeUrl(url), nickname: name });
+      socket.emit("webpage:join", { url: url, nickname: name });
     }
   };
 
