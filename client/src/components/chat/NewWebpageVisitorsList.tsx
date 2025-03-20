@@ -163,10 +163,10 @@ const NewWebpageVisitorsList = ({
                         type="button"
                         className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium ${
                           visitor.unreadMessages && visitor.unreadMessages > 0
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md'
                             : activeChatWith === visitor.nickname
-                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
                         }`}
                         title={
                           visitor.unreadMessages && visitor.unreadMessages > 0
