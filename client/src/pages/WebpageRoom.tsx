@@ -89,7 +89,8 @@ const WebpageRoom = () => {
   // Array di utenti con cui è stato scambiato almeno un messaggio
   const [chatHistoryUsers, setChatHistoryUsers] = useState<string[]>([]);
   // Utenti che stanno scrivendo
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [typingUsers, setTypingUsers] = useState<{[key: string]: boolean}>({});
+  const [userTypingTimeouts, setUserTypingTimeouts] = useState<{[key: string]: NodeJS.Timeout}>({}); // Timeout per ogni utente
 
   // Set up socket connection when the component loads
   useEffect(() => {
@@ -410,6 +411,25 @@ const WebpageRoom = () => {
       onVisitorLeft(message);
     });
     
+    // Gestione dell'evento "utente sta scrivendo"
+    socket.on("user:typing", (data: {nickname: string, isTyping: boolean}) => {
+      console.log("Received user:typing event", data);
+      
+      // Aggiorna lo stato degli utenti che stanno scrivendo
+      setTypingUsers(prev => {
+        const newState = {...prev};
+        
+        if (data.isTyping) {
+          newState[data.nickname] = true;
+        } else {
+          delete newState[data.nickname];
+        }
+        
+        console.log("Utenti che stanno scrivendo:", Object.keys(newState));
+        return newState;
+      });
+    });
+    
     // Clean up event listeners
     return () => {
       console.log("Cleaning up webpage event listeners");
@@ -424,6 +444,7 @@ const WebpageRoom = () => {
       socket.off("visitor:left");
       socket.off("user:joined");
       socket.off("user:left");
+      socket.off("user:typing"); // Rimuovi il listener per l'evento utente sta scrivendo
       socket.off("msg_notification"); // Rimuovi il listener per l'evento di notifica
     };
   }, [socket]);

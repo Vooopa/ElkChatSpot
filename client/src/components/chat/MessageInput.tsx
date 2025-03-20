@@ -3,6 +3,8 @@ import { Send } from "lucide-react";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
+  onTypingStart?: () => void;
+  onTypingStop?: () => void;
 }
 
 const MessageInput = ({ onSendMessage }: MessageInputProps) => {
