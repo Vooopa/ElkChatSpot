@@ -200,7 +200,25 @@ const WebpageRoom = () => {
     socket.on("msg_notification", (message: Message) => {
       console.log("📣 RICEVUTO EVENTO SPECIALE DI NOTIFICA:", message);
       
-      // Riproduci suono di notifica
+      // Verifica se la chat privata è già aperta con questo utente
+      const isChatAlreadyOpenWithSender = 
+        privateChatOpen && 
+        privateChatRecipient.toLowerCase() === (message.nickname || '').toLowerCase();
+        
+      console.log("Stato chat privata:", {
+        privateChatOpen,
+        privateChatRecipient,
+        messageSender: message.nickname,
+        isChatAlreadyOpenWithSender
+      });
+      
+      // Se la chat è già aperta con il mittente, non mostrare notifiche
+      if (isChatAlreadyOpenWithSender) {
+        console.log("📣 Chat già aperta con", message.nickname, "- nessuna notifica necessaria");
+        return; // Esci dalla funzione senza mostrare notifiche
+      }
+      
+      // Riproduci suono di notifica solo se la chat non è già aperta
       playNotificationSound();
       
       // Utilizzo di alert nativo che funziona su tutti i browser
@@ -221,6 +239,11 @@ const WebpageRoom = () => {
           variant: "destructive",
           duration: 10000
         });
+        
+        // Anche se l'alert fallisce, comunque apri la chat
+        if (message.nickname) {
+          handleStartPrivateChat(message.nickname);
+        }
       }
     });
     
