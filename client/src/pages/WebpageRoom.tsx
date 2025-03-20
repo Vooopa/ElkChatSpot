@@ -251,10 +251,14 @@ const WebpageRoom = () => {
       } catch (error) {
         console.error("Errore durante la visualizzazione della notifica:", error);
         
-        // Fallback con alert tradizionale
-        window.alert(`Hai ricevuto un messaggio da ${message.nickname}`);
+        // Fallback con toast
+        toast({
+          title: "Nuovo messaggio",
+          description: `Hai ricevuto un messaggio da ${message.nickname}`,
+          variant: "default"
+        });
         
-        // Anche se l'alert fallisce, comunque apri la chat
+        // Comunque apri la chat
         if (message.nickname) {
           handleStartPrivateChat(message.nickname);
         }
@@ -472,7 +476,10 @@ const WebpageRoom = () => {
         // Forza un secondo aggiornamento dopo un altro breve ritardo
         setTimeout(() => {
           console.log('📩 [FINAL CHECK] Stato finale visitors:', 
-            visitors.map(v => `${v.nickname}: ${v.unreadMessages || 0}`).join(', '));
+            visitors.map(v => {
+              const hasUnread = v.unreadMessages && v.unreadMessages > 0 ? true : false;
+              return `${v.nickname}: ${hasUnread ? 'nuovi messaggi' : 'nessun messaggio'}`;
+            }).join(', '));
         }, 300);
       }, 800);
     });
