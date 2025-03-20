@@ -13,6 +13,7 @@ import Header from "@/components/chat/Header";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import CustomNotification from "@/components/ui/custom-notification";
 
 // Migliorata la funzione di notifica sonora
 const playNotificationSound = () => {
