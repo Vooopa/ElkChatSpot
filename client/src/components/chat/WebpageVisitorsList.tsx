@@ -179,10 +179,8 @@ const WebpageVisitorsList = ({
                           // Aggiungi messaggio di debug
                           console.log(`✅ Clic sul pulsante della chat per ${visitor.nickname}`);
                           
-                          // Aggiungi alert conferma
-                          setTimeout(() => {
-                            alert(`Iniziando chat con ${visitor.nickname}`);
-                          }, 100);
+                          // Solo logging, niente alert
+                          console.log(`Iniziando chat con ${visitor.nickname}`);
                         } catch (err) {
                           console.error("Errore durante la notifica:", err);
                         }
