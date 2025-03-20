@@ -167,7 +167,7 @@ const WebpageVisitorsList = ({
                       {/* Indicatore di nuovo messaggio - SENZA NUMERI */}
                       {visitor.nickname !== currentUser && (
                         <>
-                          {visitor.unreadMessages === 1 && (
+                          {visitor.unreadMessages && visitor.unreadMessages > 0 && (
                             <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse shadow-md">
                               Nuovo
                             </span>
