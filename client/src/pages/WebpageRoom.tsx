@@ -814,7 +814,7 @@ const WebpageRoom = () => {
           return prevVisitors.map(visitor => {
             if (visitor.nickname?.toLowerCase() === fromUser.toLowerCase()) {
               const newCount = (visitor.unreadMessages || 0) + 1;
-              console.log(`🔔 Incrementato contatore per ${visitor.nickname} a ${newCount} messaggi non letti`);
+              console.log(`🔔 Incrementato contatore per ${visitor.nickname}, ha nuovi messaggi`);
               return {
                 ...visitor,
                 unreadMessages: newCount
@@ -954,10 +954,10 @@ const WebpageRoom = () => {
   const domain = getDomainFromUrl(url);
   const roomInfo = `Chatting about ${domain}`;
   
-  // Calculate total unread messages
-  const totalUnreadMessages = visitors.reduce((sum, visitor) => {
-    return sum + (visitor.unreadMessages || 0);
-  }, 0);
+  // Calculate if there are any unread messages (boolean instead of count)
+  const hasUnreadMessages = visitors.some(visitor => 
+    visitor.unreadMessages && visitor.unreadMessages > 0 && visitor.nickname !== nickname
+  );
   
   // La simulazione è stata rimossa per evitare errori di React Hooks
 
@@ -974,7 +974,7 @@ const WebpageRoom = () => {
       {/* Audio di notifica */}
       <audio id="notification-sound" preload="auto" src="/notification.mp3" />
       
-      <div className={`flex-none bg-white border-b shadow-sm p-4 ${totalUnreadMessages > 0 ? 'bg-red-50' : ''}`}>
+      <div className={`flex-none bg-white border-b shadow-sm p-4 ${hasUnreadMessages ? 'bg-red-50' : ''}`}>
         <div className="flex justify-between items-center">
           <div className="flex items-center">
             <Link href="/" className="mr-4 text-gray-600 hover:text-gray-900">
@@ -984,7 +984,7 @@ const WebpageRoom = () => {
               <Header roomInfo={roomInfo} onlineCount={visitors.length} />
               
               {/* Unread messages indicator */}
-              {totalUnreadMessages > 0 && (
+              {hasUnreadMessages && (
                 <div className="ml-3 chat-button-notification flex items-center px-2 py-1 rounded-full text-xs font-medium border-2 border-yellow-300">
                   <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1 animate-ping"></span>
                   <span className="font-bold">
@@ -995,7 +995,7 @@ const WebpageRoom = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            {totalUnreadMessages > 0 && (
+            {hasUnreadMessages && (
               <button 
                 onClick={() => {
                   // Find first visitor with unread messages and open chat
