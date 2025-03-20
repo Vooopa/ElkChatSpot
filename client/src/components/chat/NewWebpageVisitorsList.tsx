@@ -139,11 +139,11 @@ const NewWebpageVisitorsList = ({
                       )}
                       
                       {/* Indicatore messaggi non letti (SENZA NUMERI) */}
-                      {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 ? (
+                      {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
                         <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
                           Nuovo
                         </span>
-                      ) : null}
+                      )}
                       
                       {/* Indicatore "sta scrivendo" */}
                       {visitor.nickname !== currentUser && typingUsers[visitor.nickname] && (
@@ -161,16 +161,18 @@ const NewWebpageVisitorsList = ({
                     {chatHistoryUsers.includes(visitor.nickname) ? (
                       <button
                         type="button"
-                        className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium
-                          ${visitor.unreadMessages && visitor.unreadMessages > 0
+                        className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium ${
+                          visitor.unreadMessages && visitor.unreadMessages > 0
                             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                            : (activeChatWith === visitor.nickname
-                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                                : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white')
-                          }`}
-                        title={visitor.unreadMessages && visitor.unreadMessages > 0
-                          ? 'Hai nuovi messaggi'
-                          : 'Continua chat'}
+                            : activeChatWith === visitor.nickname
+                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+                        }`}
+                        title={
+                          visitor.unreadMessages && visitor.unreadMessages > 0
+                            ? 'Hai nuovi messaggi'
+                            : 'Continua chat'
+                        }
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
                         <MessageCircle className="h-3 w-3 mr-1" />
