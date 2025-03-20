@@ -4,6 +4,7 @@ import { io, Socket } from "socket.io-client";
 import type { Message, WebpageVisitor } from "@shared/schema";
 import { UserStatus, normalizeUrl, MessageType } from "@shared/schema";
 import WebpageVisitorsList from "@/components/chat/WebpageVisitorsList";
+import NewWebpageVisitorsList from "@/components/chat/NewWebpageVisitorsList";
 import WebpageUrlInput from "@/components/chat/WebpageUrlInput";
 import NicknameModal from "@/components/chat/NicknameModal";
 import PrivateChatDialog from "@/components/chat/PrivateChatDialog";
@@ -1013,7 +1014,7 @@ const WebpageRoom = () => {
         </div>
         
         <div className="w-1/4 border-l overflow-hidden">
-          <WebpageVisitorsList 
+          <NewWebpageVisitorsList 
             visitors={visitors} 
             currentUser={nickname || currentUser}
             onSetStatus={handleSetStatus}
