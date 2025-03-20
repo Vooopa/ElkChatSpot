@@ -887,6 +887,7 @@ const WebpageRoom = () => {
             url={url}
             onStartPrivateChat={handleStartPrivateChat}
             socket={socket}
+            activeChatWith={privateChatOpen ? privateChatRecipient : null}
           />
         </div>
       </div>

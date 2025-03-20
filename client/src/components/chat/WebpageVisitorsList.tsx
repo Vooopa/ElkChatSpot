@@ -19,6 +19,7 @@ interface WebpageVisitorsListProps {
   url: string;
   onStartPrivateChat: (recipientName: string) => void;
   socket: Socket | null;
+  activeChatWith: string | null; // Nome utente con cui è attiva una chat privata
 }
 
 const WebpageVisitorsList = ({ 
@@ -27,7 +28,8 @@ const WebpageVisitorsList = ({
   onSetStatus, 
   url, 
   onStartPrivateChat,
-  socket 
+  socket,
+  activeChatWith
 }: WebpageVisitorsListProps) => {
   // Find the current user's visitor object by nickname
   const currentUserVisitor = visitors.find(v => v.nickname === currentUser);
@@ -156,6 +158,12 @@ const WebpageVisitorsList = ({
                       {visitor.nickname === currentUser && (
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
+                      {visitor.nickname !== currentUser && activeChatWith === visitor.nickname && (
+                        <span className="ml-2 px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full flex items-center">
+                          <span className="inline-block w-2 h-2 bg-white rounded-full mr-1 animate-pulse"></span>
+                          CHAT ATTIVA
+                        </span>
+                      )}
                       {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
                         <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse border border-yellow-300">
                           {visitor.unreadMessages} nuovo/i
@@ -167,10 +175,10 @@ const WebpageVisitorsList = ({
                 <div className="flex items-center gap-2">
                   {visitor.nickname !== currentUser && (
                     <Button 
-                      variant={visitor.unreadMessages ? 'destructive' : 'ghost'}
+                      variant={visitor.unreadMessages ? 'destructive' : (activeChatWith === visitor.nickname ? 'default' : 'ghost')}
                       size="sm"
-                      className={`relative px-2 py-1 ${visitor.unreadMessages ? 'chat-button-notification border-2 border-red-300' : ''}`}
-                      title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}`}
+                      className={`relative px-2 py-1 ${visitor.unreadMessages ? 'chat-button-notification border-2 border-red-300' : (activeChatWith === visitor.nickname ? 'bg-blue-500 text-white hover:bg-blue-600 border border-blue-400 shadow-md' : '')}`}
+                      title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}${activeChatWith === visitor.nickname ? ' - Chat already open' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         
@@ -189,7 +197,10 @@ const WebpageVisitorsList = ({
                       }}
                     >
                       <div className="flex items-center gap-1 relative">
-                        <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-white' : 'text-blue-500'}`} />
+                        <MessageSquare className={`h-4 w-4 ${
+                          visitor.unreadMessages ? 'text-white' : 
+                          (activeChatWith === visitor.nickname ? 'text-white' : 'text-blue-500')
+                        }`} />
                         
                         {/* Messaggio non letto in formato badge */}
                         {visitor.unreadMessages && visitor.unreadMessages > 0 ? (
@@ -197,6 +208,11 @@ const WebpageVisitorsList = ({
                             {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
                           </div>
                         ) : null}
+                        
+                        {/* Indicatore chat attiva */}
+                        {activeChatWith === visitor.nickname && !visitor.unreadMessages && (
+                          <div className="absolute -top-2 -right-2 bg-blue-400 ring-2 ring-white w-3 h-3 rounded-full animate-pulse"></div>
+                        )}
                       </div>
                     </Button>
                   )}
