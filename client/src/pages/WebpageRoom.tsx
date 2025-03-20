@@ -196,6 +196,34 @@ const WebpageRoom = () => {
       console.log("Received webpage:userCount event", count);
     });
     
+    // Ascoltatore per il nuovo evento di notifica speciale
+    socket.on("msg_notification", (message: Message) => {
+      console.log("📣 RICEVUTO EVENTO SPECIALE DI NOTIFICA:", message);
+      
+      // Riproduci suono di notifica
+      playNotificationSound();
+      
+      // Utilizzo di alert nativo che funziona su tutti i browser
+      try {
+        if (message.nickname) {
+          window.alert(`📨 NUOVO MESSAGGIO PRIVATO DA ${message.nickname}:\n\n${message.text}`);
+          
+          // Apri automaticamente la chat privata con il mittente
+          handleStartPrivateChat(message.nickname);
+        }
+      } catch (error) {
+        console.error("Errore durante la visualizzazione dell'alert:", error);
+        
+        // Se l'alert fallisce, usa un toast come fallback
+        toast({
+          title: `Nuovo messaggio da ${message.nickname}`,
+          description: message.text,
+          variant: "destructive",
+          duration: 10000
+        });
+      }
+    });
+    
     socket.on("chat:message", (message) => {
       console.log("🛑 [RICEVUTO] chat:message", message);
       logCurrentState("chat:message event");
@@ -367,6 +395,7 @@ const WebpageRoom = () => {
       socket.off("visitor:left");
       socket.off("user:joined");
       socket.off("user:left");
+      socket.off("msg_notification"); // Rimuovi il listener per l'evento di notifica
     };
   }, [socket]);
 
