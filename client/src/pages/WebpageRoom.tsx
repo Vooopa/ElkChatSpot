@@ -280,6 +280,66 @@ const WebpageRoom = () => {
       }, 500);
     });
     
+    // Gestione evento "utente sta scrivendo"
+    socket.on("user:typing", (data: { roomId: string, nickname: string, isTyping: boolean }) => {
+      console.log("👆 Evento typing ricevuto:", data);
+      
+      // Ignora gli eventi di digitazione provenienti dall'utente corrente
+      if (data.nickname === nickname) return;
+      
+      if (data.isTyping) {
+        // Imposta l'utente come "sta scrivendo"
+        setTypingUsers(prev => ({
+          ...prev,
+          [data.nickname]: true
+        }));
+        
+        // Cancella eventuali timeout esistenti per questo utente
+        if (userTypingTimeouts[data.nickname]) {
+          clearTimeout(userTypingTimeouts[data.nickname]);
+        }
+        
+        // Imposta un nuovo timeout per rimuovere lo stato "sta scrivendo" dopo 3 secondi
+        const timeoutId = setTimeout(() => {
+          setTypingUsers(prev => {
+            const newState = { ...prev };
+            delete newState[data.nickname];
+            return newState;
+          });
+          
+          // Rimuovi anche il timeout stesso dall'oggetto dei timeout
+          setUserTypingTimeouts(prev => {
+            const newTimeouts = { ...prev };
+            delete newTimeouts[data.nickname];
+            return newTimeouts;
+          });
+        }, 3000);
+        
+        // Memorizza il riferimento al timeout
+        setUserTypingTimeouts(prev => ({
+          ...prev,
+          [data.nickname]: timeoutId
+        }));
+      } else {
+        // Rimuovi immediatamente lo stato "sta scrivendo"
+        setTypingUsers(prev => {
+          const newState = { ...prev };
+          delete newState[data.nickname];
+          return newState;
+        });
+        
+        // Cancella eventuali timeout
+        if (userTypingTimeouts[data.nickname]) {
+          clearTimeout(userTypingTimeouts[data.nickname]);
+          setUserTypingTimeouts(prev => {
+            const newTimeouts = { ...prev };
+            delete newTimeouts[data.nickname];
+            return newTimeouts;
+          });
+        }
+      }
+    });
+
     socket.on("chat:private", (message) => {
       console.log("📩 [IMPORTANTE] Ricevuto messaggio privato", message);
       logCurrentState("chat:private event");
@@ -411,24 +471,7 @@ const WebpageRoom = () => {
       onVisitorLeft(message);
     });
     
-    // Gestione dell'evento "utente sta scrivendo"
-    socket.on("user:typing", (data: {nickname: string, isTyping: boolean}) => {
-      console.log("Received user:typing event", data);
-      
-      // Aggiorna lo stato degli utenti che stanno scrivendo
-      setTypingUsers(prev => {
-        const newState = {...prev};
-        
-        if (data.isTyping) {
-          newState[data.nickname] = true;
-        } else {
-          delete newState[data.nickname];
-        }
-        
-        console.log("Utenti che stanno scrivendo:", Object.keys(newState));
-        return newState;
-      });
-    });
+    // Nota: Il gestore per l'evento "user:typing" è già stato implementato sopra
     
     // Clean up event listeners
     return () => {
