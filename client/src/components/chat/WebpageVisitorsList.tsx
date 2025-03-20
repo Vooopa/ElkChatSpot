@@ -167,7 +167,7 @@ const WebpageVisitorsList = ({
                       {/* Rimosso l'indicatore "CHAT ATTIVA" come richiesto */}
                       {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
                         <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse border border-yellow-300">
-                          {visitor.unreadMessages} nuovo/i
+                          Nuovo messaggio
                         </span>
                       )}
                       
@@ -185,37 +185,31 @@ const WebpageVisitorsList = ({
                     <>
                     {chatHistoryUsers.includes(visitor.nickname) ? (
                       // DESIGN COMPLETAMENTE DIVERSO PER CHAT CON MESSAGGI SCAMBIATI
+                      // VERSIONE COMPLETAMENTE RIPROGETTATA, SENZA NUMERI O CONTATORI VISIBILI
                       <button
                         type="button"
-                        className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium shadow-md 
+                        className={`relative inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium shadow-sm 
                           ${visitor.unreadMessages && visitor.unreadMessages > 0 
-                            ? 'bg-red-500 text-white border-2 border-red-300 hover:bg-red-600 animate-pulse' 
+                            ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse border border-red-300' 
                             : (activeChatWith === visitor.nickname 
-                                ? 'bg-blue-600 text-white border border-blue-300 hover:bg-blue-700' 
-                                : 'bg-blue-500 text-white border border-blue-200 hover:bg-blue-600')
+                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                : 'bg-blue-500 text-white hover:bg-blue-600')
                           }`}
-                        title={`Chat con ${visitor.nickname}${visitor.unreadMessages && visitor.unreadMessages > 0 ? ` (${visitor.unreadMessages} non letti)` : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''}`}
+                        title={`Chat con ${visitor.nickname}${visitor.unreadMessages && visitor.unreadMessages > 0 ? ' (nuovi messaggi)' : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           console.log(`Iniziando chat con ${visitor.nickname} (chat history)`);
                           onStartPrivateChat(visitor.nickname);
                         }}
                       >
-                        <MessageCircle className="h-4 w-4 text-white" />
-                        <span className="text-xs font-semibold">Chat</span>
-                        
-                        {/* Indicatore messaggi non letti */}
-                        {visitor.unreadMessages && visitor.unreadMessages > 0 && (
-                          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold border border-white">
-                            {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
-                          </div>
-                        )}
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        Chat
                       </button>
                     ) : (
                       // DESIGN MINIMALISTA PER CHAT SENZA MESSAGGI
                       <button
                         type="button"
-                        className="relative inline-flex items-center p-1.5 rounded-md text-gray-500 bg-gray-100 hover:bg-gray-200 transition-colors"
+                        className="relative inline-flex items-center p-1.5 rounded-md text-gray-500 bg-gray-100 hover:bg-gray-200"
                         title={`Avvia chat con ${visitor.nickname}`}
                         onClick={(e) => {
                           e.stopPropagation();
