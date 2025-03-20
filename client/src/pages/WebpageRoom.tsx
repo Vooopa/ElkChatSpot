@@ -272,6 +272,32 @@ const WebpageRoom = () => {
             console.log(`📩 [PRIVATE] Elemento visitatore trovato, aggiungo effetti visivi`);
             visitorElement.classList.add('flash-notification');
             
+            // Cerca l'elemento del nome utente per aggiungere il LED
+            const usernameParagraph = visitorElement.querySelector('p');
+            if (usernameParagraph) {
+              // Verifica se esiste già un LED
+              let ledIndicator = usernameParagraph.querySelector('.led-indicator');
+              let unreadCounter = usernameParagraph.querySelector('.unread-counter');
+              
+              // Se non esistono, li creiamo
+              if (!ledIndicator) {
+                ledIndicator = document.createElement('span');
+                ledIndicator.className = 'led-indicator';
+                usernameParagraph.appendChild(ledIndicator);
+              }
+              
+              // Aggiorna o crea il contatore
+              if (!unreadCounter) {
+                unreadCounter = document.createElement('span');
+                unreadCounter.className = 'unread-counter';
+                usernameParagraph.appendChild(unreadCounter);
+              }
+              
+              // Aggiorna il contatore (incrementa se esiste già un valore)
+              const currentCount = parseInt(unreadCounter.textContent || '0', 10);
+              unreadCounter.textContent = (currentCount + 1).toString();
+            }
+            
             // Per sicurezza rimuoviamo dopo un po'
             setTimeout(() => visitorElement.classList.remove('flash-notification'), 10000);
           } else {
@@ -280,12 +306,12 @@ const WebpageRoom = () => {
           
           // Trova il pulsante della chat
           const chatButtons = document.querySelectorAll('button');
-          let chatButton = null;
+          let chatButton: HTMLButtonElement | null = null;
           
           // Cerca tra tutti i pulsanti quello relativo all'utente che ha inviato il messaggio
-          chatButtons.forEach(button => {
-            if (button.title && button.title.includes(fromUser)) {
-              chatButton = button;
+          chatButtons.forEach((button: Element) => {
+            if ((button as HTMLButtonElement).title && (button as HTMLButtonElement).title.includes(fromUser)) {
+              chatButton = button as HTMLButtonElement;
             }
           });
           
@@ -294,18 +320,34 @@ const WebpageRoom = () => {
             chatButton.classList.add('has-notification');
             
             // Aggiungi un badge di notifica con il contatore
-            const badge = document.createElement('span');
-            badge.className = 'notification-badge';
-            badge.textContent = '1';
-            chatButton.appendChild(badge);
+            // Prima cerca se c'è già un badge esistente
+            let badge = chatButton.querySelector('.notification-badge');
+            
+            if (!badge) {
+              // Se non esiste, crealo
+              badge = document.createElement('span');
+              badge.className = 'notification-badge';
+              badge.textContent = '1';
+              chatButton.appendChild(badge);
+            } else {
+              // Se esiste, incrementa il contatore
+              const currentCount = parseInt(badge.textContent || '1', 10);
+              badge.textContent = (currentCount + 1).toString();
+            }
+            
+            // Forza un effetto di animazione resettandola e riavviandola
+            badge.style.animation = 'none';
+            setTimeout(() => {
+              badge.style.animation = 'pulseChat 1s infinite';
+            }, 10);
             
             // Rimuovi dopo un po'
             setTimeout(() => {
               chatButton.classList.remove('has-notification');
-              if (badge.parentNode) {
+              if (badge && badge.parentNode) {
                 badge.parentNode.removeChild(badge);
               }
-            }, 10000);
+            }, 20000); // Aumentato a 20 secondi per maggiore visibilità
           } else {
             console.log(`📩 [PRIVATE] Pulsante chat non trovato per ${fromUser}`);
           }
