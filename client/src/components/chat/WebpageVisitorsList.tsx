@@ -188,13 +188,13 @@ const WebpageVisitorsList = ({
                       <button
                         type="button"
                         className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium shadow-md 
-                          ${visitor.unreadMessages 
+                          ${visitor.unreadMessages && visitor.unreadMessages > 0 
                             ? 'bg-red-500 text-white border-2 border-red-300 hover:bg-red-600 animate-pulse' 
                             : (activeChatWith === visitor.nickname 
                                 ? 'bg-blue-600 text-white border border-blue-300 hover:bg-blue-700' 
                                 : 'bg-blue-500 text-white border border-blue-200 hover:bg-blue-600')
                           }`}
-                        title={`Chat con ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} non letti)` : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''}`}
+                        title={`Chat con ${visitor.nickname}${visitor.unreadMessages && visitor.unreadMessages > 0 ? ` (${visitor.unreadMessages} non letti)` : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           console.log(`Iniziando chat con ${visitor.nickname} (chat history)`);
