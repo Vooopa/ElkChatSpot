@@ -174,16 +174,17 @@ const WebpageVisitorsList = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         
-                        // Rimuovi gli indicatori visivi creati tramite DOM
-                        const visitorElement = document.getElementById(`visitor-${visitor.nickname}`);
-                        if (visitorElement) {
-                          visitorElement.classList.remove('flash-notification');
+                        // Mostra conferma clic
+                        try {
+                          // Aggiungi messaggio di debug
+                          console.log(`✅ Clic sul pulsante della chat per ${visitor.nickname}`);
                           
-                          const indicators = visitorElement.querySelectorAll('[style*="animation: blink"]');
-                          const counters = visitorElement.querySelectorAll('[style*="border: 3px solid yellow"]');
-                          
-                          indicators.forEach(el => el.parentNode?.removeChild(el));
-                          counters.forEach(el => el.parentNode?.removeChild(el));
+                          // Aggiungi alert conferma
+                          setTimeout(() => {
+                            alert(`Iniziando chat con ${visitor.nickname}`);
+                          }, 100);
+                        } catch (err) {
+                          console.error("Errore durante la notifica:", err);
                         }
                         
                         onStartPrivateChat(visitor.nickname);

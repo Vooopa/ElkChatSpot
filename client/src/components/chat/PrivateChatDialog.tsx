@@ -128,6 +128,19 @@ const PrivateChatDialog = ({
       recipient: recipientName
     };
     
+    // Log per debug
+    console.log("💬 DIALOG: Invio messaggio privato dalla finestra di chat:", privateMessage);
+      
+    // Mostra un messaggio di debug
+    try {
+      // Aggiungi alert per confermare l'invio
+      setTimeout(() => {
+        alert(`Messaggio inviato a ${recipientName}: "${newMessage}"`);
+      }, 100);
+    } catch (err) {
+      console.error("Errore durante l'alert:", err);
+    }
+    
     socket.emit("chat:private", privateMessage);
     setNewMessage("");
   };
