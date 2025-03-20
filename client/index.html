@@ -9,6 +9,100 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="notification-container"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Funzione globale per mostrare notifiche di messaggi privati
+      window.showPrivateMessageNotification = function(sender, message, callback) {
+        // Creiamo un elemento div per la notifica
+        const notification = document.createElement('div');
+        notification.style.position = 'fixed';
+        notification.style.top = '20px';
+        notification.style.right = '20px';
+        notification.style.backgroundColor = '#ef4444';
+        notification.style.color = 'white';
+        notification.style.padding = '15px 20px';
+        notification.style.borderRadius = '10px';
+        notification.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.3)';
+        notification.style.zIndex = '1000';
+        notification.style.width = '300px';
+        notification.style.border = '3px solid yellow';
+        notification.style.animation = 'shake 0.5s infinite';
+        
+        // Creiamo il contenuto della notifica
+        const title = document.createElement('h3');
+        title.style.fontSize = '16px';
+        title.style.fontWeight = 'bold';
+        title.style.marginBottom = '5px';
+        title.textContent = `Nuovo messaggio da ${sender}`;
+        
+        const messageText = document.createElement('p');
+        messageText.style.fontSize = '14px';
+        messageText.textContent = message.length > 50 ? 
+          message.substring(0, 50) + '...' : message;
+        
+        const button = document.createElement('button');
+        button.style.marginTop = '10px';
+        button.style.padding = '5px 10px';
+        button.style.backgroundColor = 'white';
+        button.style.color = '#ef4444';
+        button.style.border = 'none';
+        button.style.borderRadius = '5px';
+        button.style.fontWeight = 'bold';
+        button.style.cursor = 'pointer';
+        button.textContent = 'Rispondi ora';
+        
+        // Quando si fa clic sul pulsante, esegui il callback e rimuovi la notifica
+        button.addEventListener('click', () => {
+          if (typeof callback === 'function') {
+            callback();
+          }
+          if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+          }
+        });
+        
+        // Aggiungiamo gli elementi alla notifica
+        notification.appendChild(title);
+        notification.appendChild(messageText);
+        notification.appendChild(button);
+        
+        // Aggiungiamo la notifica al container
+        const container = document.getElementById('notification-container');
+        container.appendChild(notification);
+        
+        // Riproduciamo un suono di notifica
+        const audio = new Audio('/notification.mp3');
+        audio.play().catch(e => console.log('Errore riproduzione audio:', e));
+        
+        // Rimuoviamo la notifica dopo 10 secondi
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateY(-20px)';
+            notification.style.transition = 'opacity 0.3s, transform 0.3s';
+            
+            setTimeout(() => {
+              if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+              }
+            }, 300);
+          }
+        }, 10000);
+      };
+      
+      // Aggiungiamo una regola CSS per l'animazione
+      document.head.insertAdjacentHTML('beforeend', `
+        <style>
+          @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(5px); }
+            50% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+          }
+        </style>
+      `);
+    </script>
   </body>
 </html>
