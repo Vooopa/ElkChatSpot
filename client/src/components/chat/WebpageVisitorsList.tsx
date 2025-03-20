@@ -145,7 +145,7 @@ const WebpageVisitorsList = ({
               id={`visitor-${visitor.nickname}`}
               className={`p-2 hover:bg-gray-50 rounded-md transition-colors ${
                 visitor.nickname === currentUser ? "bg-blue-50" : ""
-              } ${visitor.unreadMessages ? "animate-pulse border border-red-400" : ""}`}
+              } ${visitor.unreadMessages && visitor.unreadMessages > 0 ? "animate-pulse border border-red-400" : ""}`}
               onClick={() => setExpandedVisitor(
                 expandedVisitor === visitor.socketId ? null : visitor.socketId
               )}
