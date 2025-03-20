@@ -313,7 +313,26 @@ ${entryCode}
       console.log(`🔒 Private chat state changed: ${socket.id} ${data.isOpen ? 'opened' : 'closed'} chat with ${data.recipient}`);
     });
     
-    // Handle private message
+    // Handle typing status updates
+    socket.on("user:typing", (data: { roomId: string, nickname: string, isTyping: boolean }) => {
+      if (!data.roomId || !data.nickname) return;
+      
+      console.log(`👆 User ${data.nickname} is ${data.isTyping ? 'typing' : 'stopped typing'} in room ${data.roomId}`);
+      
+      // Update activity timestamp if this is a webpage visitor
+      if (isWebpageVisitor && currentRoom) {
+        storage.updateWebpageVisitorActivity(currentRoom, socket.id);
+      }
+      
+      // Broadcast typing status to everyone else in the room
+      socket.to(data.roomId).emit("user:typing", {
+        roomId: data.roomId,
+        nickname: data.nickname,
+        isTyping: data.isTyping
+      });
+    });
+    
+    // Handle private messages
     socket.on("chat:private", (message: Message) => {
       if (!message.roomId || !message.text || !message.nickname || !message.recipient) return;
       
