@@ -72,8 +72,25 @@
         container.appendChild(notification);
         
         // Riproduciamo un suono di notifica
-        const audio = new Audio('/notification.mp3');
-        audio.play().catch(e => console.log('Errore riproduzione audio:', e));
+        try {
+          const audio = new Audio('/notification.mp3');
+          audio.volume = 1.0; // Volume massimo
+          const playPromise = audio.play();
+          
+          if (playPromise !== undefined) {
+            playPromise.then(() => {
+              console.log('🔊 Audio riprodotto con successo!');
+            }).catch(e => {
+              console.error('❌ Errore riproduzione audio:', e);
+              // Prova con un alert sonoro come fallback
+              alert(`NUOVO MESSAGGIO DA ${sender}: ${message}`);
+            });
+          }
+        } catch(e) {
+          console.error('❌ Errore creazione audio:', e);
+          // Fallback con alert
+          alert(`NUOVO MESSAGGIO DA ${sender}: ${message}`);
+        }
         
         // Rimuoviamo la notifica dopo 10 secondi
         setTimeout(() => {

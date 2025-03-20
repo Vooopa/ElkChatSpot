@@ -407,7 +407,7 @@ const WebpageRoom = () => {
       return;
     }
     
-    // Check if this is a private message
+    // Check if this is a private message with prefix "/pm "
     const privateMessagePrefix = "/pm ";
     if (text.startsWith(privateMessagePrefix)) {
       const textWithoutPrefix = text.substring(privateMessagePrefix.length);
@@ -418,6 +418,16 @@ const WebpageRoom = () => {
         const privateText = textWithoutPrefix.substring(firstSpaceIndex + 1);
         
         if (privateText.trim()) {
+          console.log("DEBUG - Invio messaggio privato:", {
+            recipient,
+            privateText
+          });
+          
+          // Alert per confermare che il messaggio è stato inviato
+          setTimeout(() => {
+            alert(`Messaggio privato inviato a ${recipient}`);
+          }, 300);
+          
           sendPrivateMessage(recipient, privateText);
           return;
         }
@@ -425,9 +435,9 @@ const WebpageRoom = () => {
       
       // Invalid format, show toast message
       toast({
-        title: "Invalid Command",
-        description: "To send a private message use: /pm username message",
-        variant: "default"
+        title: "Formato non valido",
+        description: "Per inviare un messaggio privato usa: /pm nome-utente messaggio",
+        variant: "destructive"
       });
       return;
     }
@@ -445,9 +455,6 @@ const WebpageRoom = () => {
     
     // Send message to server
     socket.emit("chat:message", message);
-    
-    // We no longer add to local state directly - we'll rely on the server echoing back
-    // the message with any additional data that might be necessary
   };
 
   const sendPrivateMessage = (recipient: string, text: string) => {
