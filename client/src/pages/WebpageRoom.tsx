@@ -261,71 +261,26 @@ const WebpageRoom = () => {
           });
         });
         
-        // APPROCCIO SEMPLIFICATO: utilizziamo solo le notifiche popup
+        // APPROCCIO GLOBALE: utilizziamo la funzione di notifica globale
         console.log('🔴 RICEVUTO MESSAGGIO PRIVATO da ' + fromUser);
         
-        // Metodo 1: Creiamo una notifica popup che scompare dopo alcuni secondi
         try {
-          // Creiamo un elemento div per la notifica
-          const notification = document.createElement('div');
-          notification.className = 'notification-popup';
-          
-          // Creiamo il contenuto della notifica
-          const title = document.createElement('h3');
-          title.style.fontSize = '16px';
-          title.style.fontWeight = 'bold';
-          title.style.marginBottom = '5px';
-          title.textContent = `Nuovo messaggio da ${fromUser}`;
-          
-          const messageText = document.createElement('p');
-          messageText.style.fontSize = '14px';
-          messageText.textContent = message.text.length > 50 ? 
-            message.text.substring(0, 50) + '...' : message.text;
-          
-          const button = document.createElement('button');
-          button.style.marginTop = '10px';
-          button.style.padding = '5px 10px';
-          button.style.backgroundColor = 'white';
-          button.style.color = '#ef4444';
-          button.style.border = 'none';
-          button.style.borderRadius = '5px';
-          button.style.fontWeight = 'bold';
-          button.style.cursor = 'pointer';
-          button.textContent = 'Rispondi ora';
-          
-          // Quando si fa clic sul pulsante, apriamo la chat
-          button.addEventListener('click', () => {
-            handleStartPrivateChat(fromUser);
-            // Rimuovi la notifica quando si fa clic sul pulsante
-            if (notification.parentNode) {
-              notification.parentNode.removeChild(notification);
-            }
-          });
-          
-          // Aggiungiamo gli elementi alla notifica
-          notification.appendChild(title);
-          notification.appendChild(messageText);
-          notification.appendChild(button);
-          
-          // Aggiungiamo la notifica al body
-          document.body.appendChild(notification);
-          
-          // Rimuovi la notifica dopo 10 secondi
-          setTimeout(() => {
-            if (notification.parentNode) {
-              // Animazione di fade out
-              notification.style.opacity = '0';
-              notification.style.transform = 'translateY(-20px)';
-              notification.style.transition = 'opacity 0.3s, transform 0.3s';
-              
-              // Rimuovi l'elemento dopo l'animazione
-              setTimeout(() => {
-                if (notification.parentNode) {
-                  notification.parentNode.removeChild(notification);
-                }
-              }, 300);
-            }
-          }, 10000);
+          // Usiamo la funzione globale definita in index.html
+          if (typeof (window as any).showPrivateMessageNotification === 'function') {
+            (window as any).showPrivateMessageNotification(
+              fromUser, 
+              message.text,
+              () => handleStartPrivateChat(fromUser)
+            );
+            console.log('✅ Notifica globale mostrata con successo!');
+          } else {
+            console.error('❌ Funzione di notifica globale non disponibile');
+            
+            // Fallback: alert semplice in caso di errore
+            setTimeout(() => {
+              alert(`Nuovo messaggio privato da ${fromUser}: ${message.text}`);
+            }, 500);
+          }
           
         } catch (error) {
           console.error('Errore durante la creazione della notifica:', error);
