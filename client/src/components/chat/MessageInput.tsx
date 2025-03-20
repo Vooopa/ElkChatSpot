@@ -7,15 +7,54 @@ interface MessageInputProps {
   onTypingStop?: () => void;
 }
 
-const MessageInput = ({ onSendMessage }: MessageInputProps) => {
+const MessageInput = ({ onSendMessage, onTypingStart, onTypingStop }: MessageInputProps) => {
   const [message, setMessage] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (message.trim()) {
+      // Quando si invia un messaggio, l'utente non sta più scrivendo
+      if (onTypingStop && isTyping) {
+        onTypingStop();
+        setIsTyping(false);
+      }
+      
       onSendMessage(message);
       setMessage("");
     }
+  };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setMessage(text);
+    
+    // Gestione stato "sta scrivendo"
+    if (text.trim() && !isTyping && onTypingStart) {
+      // L'utente ha iniziato a scrivere
+      setIsTyping(true);
+      onTypingStart();
+    } else if (!text.trim() && isTyping && onTypingStop) {
+      // L'utente ha smesso di scrivere (campo vuoto)
+      setIsTyping(false);
+      onTypingStop();
+    }
+    
+    // Reset del timeout esistente
+    if (typingTimeout) {
+      clearTimeout(typingTimeout);
+    }
+    
+    // Imposta un nuovo timeout per determinare quando l'utente ha smesso di scrivere
+    const newTimeout = setTimeout(() => {
+      if (isTyping && onTypingStop) {
+        setIsTyping(false);
+        onTypingStop();
+      }
+    }, 2000); // 2 secondi dopo l'ultima digitazione
+    
+    setTypingTimeout(newTimeout);
   };
 
   return (
@@ -25,7 +64,7 @@ const MessageInput = ({ onSendMessage }: MessageInputProps) => {
           <input
             type="text"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={handleInputChange}
             className="flex-1 rounded-l-lg border border-gray-300 py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
             placeholder="Type your message..."
           />
