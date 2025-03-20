@@ -21,6 +21,7 @@ interface WebpageVisitorsListProps {
   socket: Socket | null;
   activeChatWith: string | null; // Nome utente con cui è attiva una chat privata
   chatHistoryUsers: string[]; // Lista di utenti con cui è stato scambiato almeno un messaggio
+  typingUsers?: {[key: string]: boolean}; // Utenti che stanno scrivendo
 }
 
 const WebpageVisitorsList = ({ 
@@ -31,7 +32,8 @@ const WebpageVisitorsList = ({
   onStartPrivateChat,
   socket,
   activeChatWith,
-  chatHistoryUsers
+  chatHistoryUsers,
+  typingUsers = {}
 }: WebpageVisitorsListProps) => {
   // Find the current user's visitor object by nickname
   const currentUserVisitor = visitors.find(v => v.nickname === currentUser);
@@ -164,6 +166,13 @@ const WebpageVisitorsList = ({
                       {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
                         <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse border border-yellow-300">
                           {visitor.unreadMessages} nuovo/i
+                        </span>
+                      )}
+                      
+                      {/* Indicatore "sta scrivendo" */}
+                      {visitor.nickname !== currentUser && typingUsers[visitor.nickname] && (
+                        <span className="ml-2 px-2 py-0.5 bg-yellow-400 text-yellow-800 text-xs font-medium rounded-full border border-yellow-500 animate-pulse">
+                          sta scrivendo...
                         </span>
                       )}
                     </p>

@@ -822,6 +822,20 @@ const WebpageRoom = () => {
     }
   };
   
+  // Gestione stato "utente sta scrivendo"
+  const handleTypingStatus = (isTyping: boolean) => {
+    if (!socket || !isConnected || !nickname || !roomId) return;
+    
+    console.log(`Emitting typing status: ${isTyping ? 'typing' : 'stopped typing'}`);
+    
+    // Emetti l'evento al server
+    socket.emit("user:typing", {
+      roomId,
+      nickname,
+      isTyping
+    });
+  };
+  
   // Format domain name for display
   const getDomainFromUrl = (urlString: string) => {
     try {
@@ -916,7 +930,11 @@ const WebpageRoom = () => {
             <MessageArea messages={messages} currentUser={nickname || currentUser} />
           </div>
           <div className="flex-none p-4 border-t bg-white">
-            <MessageInput onSendMessage={handleSendMessage} />
+            <MessageInput 
+              onSendMessage={handleSendMessage}
+              onTypingStart={() => handleTypingStatus(true)}
+              onTypingStop={() => handleTypingStatus(false)}
+            />
             <div className="mt-2 text-xs text-gray-500">
               Tip: To send a private message, use /pm username message
             </div>
@@ -933,6 +951,7 @@ const WebpageRoom = () => {
             socket={socket}
             activeChatWith={privateChatOpen ? privateChatRecipient : null}
             chatHistoryUsers={chatHistoryUsers}
+            typingUsers={typingUsers}
           />
         </div>
       </div>
