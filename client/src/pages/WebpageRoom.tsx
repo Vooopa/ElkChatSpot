@@ -293,72 +293,66 @@ const WebpageRoom = () => {
         
         const fromUser = message.nickname || '';
         
-        // Approccio più diretto e semplice
-        setVisitors(prevVisitors => {
-          return prevVisitors.map(visitor => {
-            if (visitor.nickname === fromUser) {
-              // Incrementa contatore messaggi non letti
-              const prevCount = visitor.unreadMessages || 0;
-              const newCount = prevCount + 1;
-              
-              console.log(`📩 [PRIVATE] Aggiornamento contatore: ${prevCount} -> ${newCount} per ${fromUser}`);
-              
-              return {
-                ...visitor,
-                unreadMessages: newCount
-              };
-            }
-            return visitor;
-          });
-        });
-        
-        // APPROCCIO GLOBALE: utilizziamo la funzione di notifica globale
-        console.log('🔴 RICEVUTO MESSAGGIO PRIVATO da ' + fromUser);
-        
-        try {
-          // Usiamo la funzione globale definita in index.html
-          if (typeof (window as any).showPrivateMessageNotification === 'function') {
-            (window as any).showPrivateMessageNotification(
-              fromUser, 
-              message.text,
-              () => handleStartPrivateChat(fromUser)
-            );
-            console.log('✅ Notifica globale mostrata con successo!');
-          } else {
-            console.error('❌ Funzione di notifica globale non disponibile');
-            
-            // Fallback: alert semplice in caso di errore
-            setTimeout(() => {
-              alert(`Nuovo messaggio privato da ${fromUser}: ${message.text}`);
-            }, 500);
-          }
+        // Verifica se la chat privata è già aperta con questo utente
+        const isChatAlreadyOpenWithSender = 
+          privateChatOpen && 
+          privateChatRecipient.toLowerCase() === fromUser.toLowerCase();
           
-        } catch (error) {
-          console.error('Errore durante la creazione della notifica:', error);
-        }
-        
-        // Suona la notifica
-        playNotificationSound();
-        
-        // Mostra notifica toast
-        toast({
-          title: `Nuovo messaggio da ${message.nickname}`,
-          description: message.text,
-          variant: "destructive", // più evidente
-          duration: 8000, // più a lungo
-          action: (
-            <div 
-              className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
-              onClick={() => handleStartPrivateChat(message.nickname || "")}
-            >
-              Rispondi
-            </div>
-          )
+        console.log("📩 [PRIVATE] Stato chat privata:", {
+          privateChatOpen,
+          privateChatRecipient,
+          messageSender: fromUser,
+          isChatAlreadyOpenWithSender
         });
         
-        // Apri automaticamente la chat
-        console.log(`📩 [PRIVATE] Apro automaticamente chat con ${message.nickname}`);
-        handleStartPrivateChat(message.nickname || "");
+        // Se la chat è già aperta, non incrementare il contatore e non mostrare notifiche
+        if (!isChatAlreadyOpenWithSender) {
+          console.log("📩 [PRIVATE] La chat NON è aperta, mostro notifiche");
+          
+          // Approccio più diretto e semplice
+          setVisitors(prevVisitors => {
+            return prevVisitors.map(visitor => {
+              if (visitor.nickname === fromUser) {
+                // Incrementa contatore messaggi non letti
+                const prevCount = visitor.unreadMessages || 0;
+                const newCount = prevCount + 1;
+                
+                console.log(`📩 [PRIVATE] Aggiornamento contatore: ${prevCount} -> ${newCount} per ${fromUser}`);
+                
+                return {
+                  ...visitor,
+                  unreadMessages: newCount
+                };
+              }
+              return visitor;
+            });
+          });
+          
+          // Suona la notifica
+          playNotificationSound();
+          
+          // Mostra notifica toast
+          toast({
+            title: `Nuovo messaggio da ${message.nickname}`,
+            description: message.text,
+            variant: "destructive", // più evidente
+            duration: 8000, // più a lungo
+            action: (
+              <div 
+                className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
+                onClick={() => handleStartPrivateChat(fromUser)}
+              >
+                Rispondi
+              </div>
+            )
+          });
+          
+          // Apri automaticamente la chat
+          console.log(`📩 [PRIVATE] Apro automaticamente chat con ${fromUser}`);
+          handleStartPrivateChat(fromUser);
+        } else {
+          console.log(`📩 [PRIVATE] La chat con ${fromUser} è già aperta, nessuna notifica necessaria`);
+        }
       } else if (isFromMe) {
         console.log("📩 [PRIVATE] Questo è un messaggio inviato da te");
       } else {
@@ -660,37 +654,58 @@ const WebpageRoom = () => {
     if (isToMe && !isFromMe) {
       console.log("🟢 This private message is FOR me from someone else!");
       
-      // Play notification sound
-      playNotificationSound();
+      const fromUser = message.nickname || '';
       
-      // Update the visitor's unread count
-      setVisitors(prevVisitors => {
-        return prevVisitors.map(visitor => {
-          if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
-            const newCount = (visitor.unreadMessages || 0) + 1;
-            console.log(`🔔 Incrementato contatore per ${visitor.nickname} a ${newCount} messaggi non letti`);
-            return {
-              ...visitor,
-              unreadMessages: newCount
-            };
-          }
-          return visitor;
-        });
+      // Verifica se la chat privata è già aperta con questo utente
+      const isChatAlreadyOpenWithSender = 
+        privateChatOpen && 
+        privateChatRecipient.toLowerCase() === fromUser.toLowerCase();
+        
+      console.log("🟢 Stato chat privata per onPrivateMessage:", {
+        privateChatOpen,
+        privateChatRecipient,
+        messageSender: fromUser,
+        isChatAlreadyOpenWithSender
       });
       
-      // SOLUZIONE FIREFOX-FRIENDLY: Usa alert standard che funzionano su tutti i browser
-      try {
-        window.alert(`📨 NUOVO MESSAGGIO DA ${message.nickname}:\n\n${message.text}`);
-        // Apri la chat dopo che l'utente ha chiuso l'alert
-        handleStartPrivateChat(message.nickname || "");
-      } catch (error) {
-        console.error("Errore con alert:", error);
+      // Se la chat non è già aperta, mostra notifiche e aggiorna contatore
+      if (!isChatAlreadyOpenWithSender) {
+        console.log("🟢 Chat non aperta con questo utente, mostro notifiche e incremento contatore");
         
-        // Fallback: solo apertura della finestra di chat
-        handleStartPrivateChat(message.nickname || "");
+        // Play notification sound
+        playNotificationSound();
+        
+        // Update the visitor's unread count
+        setVisitors(prevVisitors => {
+          return prevVisitors.map(visitor => {
+            if (visitor.nickname?.toLowerCase() === fromUser.toLowerCase()) {
+              const newCount = (visitor.unreadMessages || 0) + 1;
+              console.log(`🔔 Incrementato contatore per ${visitor.nickname} a ${newCount} messaggi non letti`);
+              return {
+                ...visitor,
+                unreadMessages: newCount
+              };
+            }
+            return visitor;
+          });
+        });
+        
+        // SOLUZIONE FIREFOX-FRIENDLY: Usa alert standard che funzionano su tutti i browser
+        try {
+          window.alert(`📨 NUOVO MESSAGGIO DA ${fromUser}:\n\n${message.text}`);
+          // Apri la chat dopo che l'utente ha chiuso l'alert
+          handleStartPrivateChat(fromUser);
+        } catch (error) {
+          console.error("Errore con alert:", error);
+          
+          // Fallback: solo apertura della finestra di chat
+          handleStartPrivateChat(fromUser);
+        }
+        
+        console.log("🟢 Notification shown and counter updated");
+      } else {
+        console.log(`🟢 Chat già aperta con ${fromUser}, nessuna notifica necessaria`);
       }
-      
-      console.log("🟢 Notification shown and counter updated");
     } else {
       console.log("🟢 Private message not requiring notification in main component");
     }
