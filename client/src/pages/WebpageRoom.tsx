@@ -626,13 +626,17 @@ const WebpageRoom = () => {
         });
       });
       
-      // SOLUZIONE SEMPLICE: Apri automaticamente la finestra di chat
-      console.log("🟢 Apertura automatica della finestra di chat con", message.nickname);
-      
-      // Piccolo delay per assicurarsi che lo stato sia aggiornato
-      setTimeout(() => {
+      // SOLUZIONE FIREFOX-FRIENDLY: Usa alert standard che funzionano su tutti i browser
+      try {
+        window.alert(`📨 NUOVO MESSAGGIO DA ${message.nickname}:\n\n${message.text}`);
+        // Apri la chat dopo che l'utente ha chiuso l'alert
         handleStartPrivateChat(message.nickname || "");
-      }, 100);
+      } catch (error) {
+        console.error("Errore con alert:", error);
+        
+        // Fallback: solo apertura della finestra di chat
+        handleStartPrivateChat(message.nickname || "");
+      }
       
       console.log("🟢 Notification shown and counter updated");
     } else {
