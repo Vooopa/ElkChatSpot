@@ -355,10 +355,17 @@ ${entryCode}
       });
       
       if (recipientSocketId) {
-        // Send to recipient with notification flag
+        // Invia un nuovo evento speciale di notifica msg_notification al ricevente
+        io.to(recipientSocketId).emit("msg_notification", {
+          ...completeMessage,
+          isNotification: true, // Flag speciale per forzare la notifica
+          forceAlert: true // Flag per forzare l'alert
+        });
+        
+        // Invia anche il messaggio normale per la cronologia della chat
         io.to(recipientSocketId).emit("chat:private", {
           ...completeMessage,
-          isNotification: true // Flag speciale per forzare la notifica
+          isNotification: true
         });
         
         // Log notification details
