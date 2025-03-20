@@ -624,12 +624,17 @@ const WebpageRoom = () => {
         });
       });
       
-      // Show prominent toast notification
+      // SOLUZIONE DEFINITIVA: Usa alert per notificare (impossibile da non vedere)
+      setTimeout(() => {
+        alert(`📨 NUOVO MESSAGGIO PRIVATO\n\nDa: ${message.nickname}\nMessaggio: ${message.text}`);
+      }, 500);
+      
+      // Show prominent toast notification come backup
       toast({
         title: `📨 Nuovo messaggio da ${message.nickname}!`,
         description: message.text,
         variant: "destructive",
-        duration: 10000, // Più lungo
+        duration: 10000,
         action: (
           <div 
             className="cursor-pointer bg-red-500 text-white px-3 py-1 rounded font-medium hover:bg-red-600 transition-colors border-2 border-yellow-300 animate-pulse"
@@ -640,8 +645,10 @@ const WebpageRoom = () => {
         )
       });
       
-      // Automatically open the chat dialog
-      handleStartPrivateChat(message.nickname || "");
+      // Open the chat dialog after the alert is closed
+      setTimeout(() => {
+        handleStartPrivateChat(message.nickname || "");
+      }, 1000);
       
       console.log("🟢 Notification shown and chat opened automatically");
     } else {
