@@ -80,6 +80,11 @@ const WebpageRoom = () => {
   // Private chat state
   const [privateChatOpen, setPrivateChatOpen] = useState(false);
   const [privateChatRecipient, setPrivateChatRecipient] = useState("");
+  
+  // Custom notification state
+  const [showCustomNotification, setShowCustomNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationFrom, setNotificationFrom] = useState("");
 
   // Set up socket connection when the component loads
   useEffect(() => {
@@ -691,13 +696,21 @@ const WebpageRoom = () => {
           });
         });
         
-        // SOLUZIONE FIREFOX-FRIENDLY: Usa alert standard che funzionano su tutti i browser
+        // Notifica personalizzata con fallback all'alert standard
         try {
+          // Imposta il messaggio e mostra la notifica personalizzata
+          setNotificationFrom(fromUser);
+          setNotificationMessage(`Hai ricevuto un messaggio da ${fromUser}`);
+          setShowCustomNotification(true);
+          console.log("🎯 Mostro notifica personalizzata per messaggio da", fromUser);
+          
+          // Fallback tradizionale con alert nativo che funziona su tutti i browser
           window.alert(`Hai ricevuto un messaggio da ${fromUser}`);
+          
           // Apri la chat dopo che l'utente ha chiuso l'alert
           handleStartPrivateChat(fromUser);
         } catch (error) {
-          console.error("Errore con alert:", error);
+          console.error("Errore con notifiche:", error);
           
           // Fallback: solo apertura della finestra di chat
           handleStartPrivateChat(fromUser);
@@ -754,6 +767,15 @@ const WebpageRoom = () => {
     setPrivateChatOpen(false);
   };
   
+  // Handle closing custom notification
+  const handleCloseNotification = () => {
+    setShowCustomNotification(false);
+    // Gestisci altre azioni dopo la chiusura, come aprire la chat
+    if (notificationFrom) {
+      handleStartPrivateChat(notificationFrom);
+    }
+  };
+  
   // Format domain name for display
   const getDomainFromUrl = (urlString: string) => {
     try {
@@ -784,6 +806,17 @@ const WebpageRoom = () => {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
+      {/* Componente di notifica personalizzato */}
+      <CustomNotification 
+        isOpen={showCustomNotification} 
+        message={notificationMessage}
+        onClose={handleCloseNotification}
+        autoCloseTime={8000}
+      />
+      
+      {/* Audio di notifica */}
+      <audio id="notification-sound" preload="auto" src="/notification.mp3" />
+      
       <div className={`flex-none bg-white border-b shadow-sm p-4 ${totalUnreadMessages > 0 ? 'bg-red-50' : ''}`}>
         <div className="flex justify-between items-center">
           <div className="flex items-center">
