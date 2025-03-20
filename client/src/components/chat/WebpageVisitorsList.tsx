@@ -57,65 +57,7 @@ const WebpageVisitorsList = ({
     return <div className={`w-2 h-2 rounded-full ${getStatusColor(status)}`}></div>;
   };
 
-  // Rendering chat button based on message history
-  const renderChatButton = (visitor: WebpageVisitor) => {
-    if (chatHistoryUsers.includes(visitor.nickname)) {
-      // Button for visitors with chat history
-      return (
-        <Button 
-          variant="default"
-          size="sm"
-          className={`relative px-3 py-1.5 ${
-            visitor.unreadMessages ? 'bg-gradient-to-r from-red-500 to-pink-500 border-2 border-red-300 shadow-lg text-white animate-pulse' : 
-            (activeChatWith === visitor.nickname ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 border border-blue-400 shadow-md' : 
-            'bg-gradient-to-r from-indigo-400 to-blue-500 text-white hover:from-indigo-500 hover:to-blue-600 border border-blue-300 shadow')
-          }`}
-          title={`Chat con ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} non letti)` : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''} - Messaggi scambiati in precedenza`}
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log(`Iniziando chat con ${visitor.nickname} (chat history)`);
-            onStartPrivateChat(visitor.nickname);
-          }}
-        >
-          <div className="flex items-center gap-2 relative">
-            <MessageCircle className="h-4 w-4 text-white" />
-            <span className="text-xs font-medium">Chat</span>
-            
-            {/* Indicatore messaggi non letti */}
-            {visitor.unreadMessages && visitor.unreadMessages > 0 ? (
-              <div className="absolute -top-3 -right-3 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold border-2 border-yellow-300 shadow-lg animate-pulse">
-                {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
-              </div>
-            ) : null}
-            
-            {/* Indicatore chat attiva */}
-            {(activeChatWith === visitor.nickname && !visitor.unreadMessages) && (
-              <div className="absolute -top-2 -right-2 bg-blue-400 ring-2 ring-white w-3 h-3 rounded-full animate-pulse"></div>
-            )}
-          </div>
-        </Button>
-      );
-    } else {
-      // Simple button for visitors without chat history
-      return (
-        <Button 
-          variant="ghost"
-          size="sm"
-          className="relative px-2 py-1"
-          title={`Avvia chat con ${visitor.nickname}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            console.log(`Iniziando chat con ${visitor.nickname} (nuova)`);
-            onStartPrivateChat(visitor.nickname);
-          }}
-        >
-          <div className="flex items-center gap-1 relative">
-            <MessageSquare className="h-4 w-4 text-blue-500" />
-          </div>
-        </Button>
-      );
-    }
-  };
+
 
   const toggleUserStatus = (status: UserStatus) => {
     if (onSetStatus) {
@@ -239,7 +181,60 @@ const WebpageVisitorsList = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {visitor.nickname !== currentUser && renderChatButton(visitor)}
+                  {visitor.nickname !== currentUser && (
+                    chatHistoryUsers.includes(visitor.nickname) ? (
+                      // Pulsante evoluto per chat con cui è stato scambiato almeno un messaggio
+                      <Button 
+                        variant="default"
+                        size="sm"
+                        className={`relative px-3 py-1.5 ${
+                          visitor.unreadMessages ? 'bg-gradient-to-r from-red-500 to-pink-500 border-2 border-red-300 shadow-lg text-white animate-pulse' : 
+                          (activeChatWith === visitor.nickname ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 border border-blue-400 shadow-md' : 
+                          'bg-gradient-to-r from-indigo-400 to-blue-500 text-white hover:from-indigo-500 hover:to-blue-600 border border-blue-300 shadow')
+                        }`}
+                        title={`Chat con ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} non letti)` : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''} - Messaggi scambiati in precedenza`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log(`Iniziando chat con ${visitor.nickname} (chat history)`);
+                          onStartPrivateChat(visitor.nickname);
+                        }}
+                      >
+                        <div className="flex items-center gap-2 relative">
+                          <MessageCircle className="h-4 w-4 text-white" />
+                          <span className="text-xs font-medium">Chat</span>
+                          
+                          {/* Indicatore messaggi non letti */}
+                          {visitor.unreadMessages && visitor.unreadMessages > 0 ? (
+                            <div className="absolute -top-3 -right-3 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold border-2 border-yellow-300 shadow-lg animate-pulse">
+                              {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
+                            </div>
+                          ) : null}
+                          
+                          {/* Indicatore chat attiva */}
+                          {(activeChatWith === visitor.nickname && !visitor.unreadMessages) && (
+                            <div className="absolute -top-2 -right-2 bg-blue-400 ring-2 ring-white w-3 h-3 rounded-full animate-pulse"></div>
+                          )}
+                        </div>
+                      </Button>
+                    ) : (
+                      // Pulsante base per chat senza messaggi scambiati
+                      <Button 
+                        variant="ghost"
+                        size="sm"
+                        className="relative px-2 py-1"
+                        title={`Avvia chat con ${visitor.nickname}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log(`Iniziando chat con ${visitor.nickname} (nuova)`);
+                          onStartPrivateChat(visitor.nickname);
+                        }}
+                      >
+                        <div className="flex items-center gap-1 relative">
+                          <MessageSquare className="h-4 w-4 text-blue-500" />
+                        </div>
+                      </Button>
+                    )
+                  )}
                   <div className="flex items-center text-sm text-gray-500">
                     <Clock className="h-3 w-3 mr-1" />
                     <span className="text-xs">{formatDistanceToNow(new Date(visitor.joinedAt), { addSuffix: true })}</span>
