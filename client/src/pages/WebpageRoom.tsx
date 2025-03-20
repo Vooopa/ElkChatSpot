@@ -261,109 +261,74 @@ const WebpageRoom = () => {
           });
         });
         
-        // Approccio JavaScript puro per forzare l'aggiornamento visivo
-        // Questo dovrebbe funzionare anche se React non aggiorna correttamente l'UI
+        // APPROCCIO SEMPLIFICATO: utilizziamo solo le notifiche popup
+        console.log('🔴 RICEVUTO MESSAGGIO PRIVATO da ' + fromUser);
+        
+        // Metodo 1: Creiamo una notifica popup che scompare dopo alcuni secondi
         try {
-          console.log(`📩 [PRIVATE] Tentativo di manipolare direttamente il DOM per ${fromUser}`);
+          // Creiamo un elemento div per la notifica
+          const notification = document.createElement('div');
+          notification.className = 'notification-popup';
           
-          // Trova l'elemento nella lista visitatori
-          const visitorElement = document.getElementById(`visitor-${fromUser}`);
-          if (visitorElement) {
-            console.log(`📩 [PRIVATE] Elemento visitatore trovato, aggiungo effetti visivi`);
-            visitorElement.classList.add('flash-notification');
-            
-            // Cerca l'elemento del nome utente per aggiungere il LED
-            const usernameParagraph = visitorElement.querySelector('p');
-            if (usernameParagraph) {
-              // Verifica se esiste già un LED
-              let ledIndicator = usernameParagraph.querySelector('.led-indicator');
-              let unreadCounter = usernameParagraph.querySelector('.unread-counter');
-              
-              // Se non esistono, li creiamo
-              if (!ledIndicator) {
-                ledIndicator = document.createElement('span');
-                ledIndicator.className = 'led-indicator';
-                usernameParagraph.appendChild(ledIndicator);
-              }
-              
-              // Aggiorna o crea il contatore
-              if (!unreadCounter) {
-                unreadCounter = document.createElement('span');
-                unreadCounter.className = 'unread-counter';
-                usernameParagraph.appendChild(unreadCounter);
-              }
-              
-              // Aggiorna il contatore (incrementa se esiste già un valore)
-              const currentCount = parseInt(unreadCounter.textContent || '0', 10);
-              unreadCounter.textContent = (currentCount + 1).toString();
-            }
-            
-            // Per sicurezza rimuoviamo dopo un po'
-            setTimeout(() => visitorElement.classList.remove('flash-notification'), 10000);
-          } else {
-            console.log(`📩 [PRIVATE] Elemento visitatore non trovato: visitor-${fromUser}`);
-          }
+          // Creiamo il contenuto della notifica
+          const title = document.createElement('h3');
+          title.style.fontSize = '16px';
+          title.style.fontWeight = 'bold';
+          title.style.marginBottom = '5px';
+          title.textContent = `Nuovo messaggio da ${fromUser}`;
           
-          // Trova il pulsante della chat
-          const chatButtons = document.querySelectorAll('button');
-          let chatButton: HTMLButtonElement | null = null;
+          const messageText = document.createElement('p');
+          messageText.style.fontSize = '14px';
+          messageText.textContent = message.text.length > 50 ? 
+            message.text.substring(0, 50) + '...' : message.text;
           
-          // Cerca tra tutti i pulsanti quello relativo all'utente che ha inviato il messaggio
-          chatButtons.forEach((button: Element) => {
-            if ((button as HTMLButtonElement).title && (button as HTMLButtonElement).title.includes(fromUser)) {
-              chatButton = button as HTMLButtonElement;
+          const button = document.createElement('button');
+          button.style.marginTop = '10px';
+          button.style.padding = '5px 10px';
+          button.style.backgroundColor = 'white';
+          button.style.color = '#ef4444';
+          button.style.border = 'none';
+          button.style.borderRadius = '5px';
+          button.style.fontWeight = 'bold';
+          button.style.cursor = 'pointer';
+          button.textContent = 'Rispondi ora';
+          
+          // Quando si fa clic sul pulsante, apriamo la chat
+          button.addEventListener('click', () => {
+            handleStartPrivateChat(fromUser);
+            // Rimuovi la notifica quando si fa clic sul pulsante
+            if (notification.parentNode) {
+              notification.parentNode.removeChild(notification);
             }
           });
           
-          if (chatButton) {
-            console.log(`📩 [PRIVATE] Pulsante chat trovato, aggiungo effetti visivi`);
-            chatButton.classList.add('has-notification');
-            
-            // Aggiungi un badge di notifica con il contatore
-            // Prima cerca se c'è già un badge esistente
-            let badge = chatButton.querySelector('.notification-badge');
-            
-            if (!badge) {
-              // Se non esiste, crealo
-              badge = document.createElement('span');
-              badge.className = 'notification-badge';
-              badge.textContent = '1';
-              chatButton.appendChild(badge);
-            } else {
-              // Se esiste, incrementa il contatore
-              const currentCount = parseInt(badge.textContent || '1', 10);
-              badge.textContent = (currentCount + 1).toString();
+          // Aggiungiamo gli elementi alla notifica
+          notification.appendChild(title);
+          notification.appendChild(messageText);
+          notification.appendChild(button);
+          
+          // Aggiungiamo la notifica al body
+          document.body.appendChild(notification);
+          
+          // Rimuovi la notifica dopo 10 secondi
+          setTimeout(() => {
+            if (notification.parentNode) {
+              // Animazione di fade out
+              notification.style.opacity = '0';
+              notification.style.transform = 'translateY(-20px)';
+              notification.style.transition = 'opacity 0.3s, transform 0.3s';
+              
+              // Rimuovi l'elemento dopo l'animazione
+              setTimeout(() => {
+                if (notification.parentNode) {
+                  notification.parentNode.removeChild(notification);
+                }
+              }, 300);
             }
-            
-            // ALERT IMPORTANTISSIMO NELLA CONSOLE!
-            console.log('🔴🔴🔴 ALERT: RICEVUTO MESSAGGIO PRIVATO! 🔴🔴🔴');
-            
-            // Forza un effetto di animazione più visibile
-            badge.style.animation = 'none';
-            badge.style.backgroundColor = '#ff0000';
-            badge.style.border = '3px solid yellow';
-            badge.style.fontWeight = 'bold';
-            badge.style.fontSize = '16px';
-            badge.style.width = '25px';
-            badge.style.height = '25px';
-            badge.style.boxShadow = '0 0 15px 8px rgba(255, 0, 0, 0.9)';
-            
-            setTimeout(() => {
-              badge.style.animation = 'pulseChat 0.5s infinite';
-            }, 10);
-            
-            // Rimuovi dopo un po'
-            setTimeout(() => {
-              chatButton.classList.remove('has-notification');
-              if (badge && badge.parentNode) {
-                badge.parentNode.removeChild(badge);
-              }
-            }, 20000); // Aumentato a 20 secondi per maggiore visibilità
-          } else {
-            console.log(`📩 [PRIVATE] Pulsante chat non trovato per ${fromUser}`);
-          }
+          }, 10000);
+          
         } catch (error) {
-          console.error('Errore durante la manipolazione del DOM:', error);
+          console.error('Errore durante la creazione della notifica:', error);
         }
         
         // Suona la notifica

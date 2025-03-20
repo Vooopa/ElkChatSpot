@@ -78,39 +78,49 @@
   z-index: 10;
 }
 
-/* LED indicator styles - Colori molto più intensi */
-.led-indicator {
-  display: inline-block;
-  width: 15px !important;
-  height: 15px !important;
-  border-radius: 50%;
-  background-color: #ff0000 !important; /* Rosso puro */
-  margin-left: 6px;
-  margin-right: 6px;
-  animation: blink 0.5s infinite;
-  vertical-align: middle;
-  border: 2px solid white !important;
-  box-shadow: 0 0 12px 4px rgba(255, 0, 0, 0.9) !important;
+/* Notification Popup Styles */
+.notification-popup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #ef4444;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  transform: translateY(-20px);
+  opacity: 0;
+  animation: slideIn 0.3s forwards, shake 0.5s 0.3s infinite;
+  width: 300px;
+  border: 3px solid yellow;
 }
 
-.unread-counter {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background-color: #ff0000 !important; /* Rosso puro */
-  color: white !important;
-  border-radius: 9999px !important;
-  min-width: 25px !important; /* Più grande */
-  height: 25px !important; /* Più grande */
-  font-size: 14px !important; /* Più grande */
-  font-weight: 900 !important; /* Extra bold */
-  margin-left: 4px;
-  padding: 0 6px !important;
-  border: 2px solid yellow !important; /* Bordo giallo */
-  animation: pulseChat 0.7s infinite !important; /* Più veloce */
-  position: relative !important;
-  z-index: 99 !important;
-  transform: scale(1.2) !important; /* Ingrandito */
+@keyframes slideIn {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Message Counter Badge for chat buttons */
+.message-counter {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background-color: #ef4444;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+  animation: pulseChat 1s infinite;
 }
 
 .has-notification {

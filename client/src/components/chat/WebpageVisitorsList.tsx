@@ -157,41 +157,9 @@ const WebpageVisitorsList = ({
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
                       {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
-                        <>
-                          <span style={{
-                            display: 'inline-block',
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            backgroundColor: '#ff0000',
-                            marginLeft: '8px',
-                            marginRight: '8px',
-                            animation: 'blink 0.5s infinite',
-                            verticalAlign: 'middle',
-                            border: '3px solid yellow',
-                            boxShadow: '0 0 15px 7px rgba(255, 0, 0, 0.9)'
-                          }}></span>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: '#ff0000',
-                            color: 'white',
-                            borderRadius: '50%',
-                            minWidth: '30px',
-                            height: '30px',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            marginLeft: '8px',
-                            padding: '0 8px',
-                            border: '3px solid yellow',
-                            animation: 'pulseChat 0.5s infinite',
-                            zIndex: 999,
-                            transform: 'scale(1.2)'
-                          }}>
-                            {visitor.unreadMessages}
-                          </span>
-                        </>
+                        <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse border border-yellow-300">
+                          {visitor.unreadMessages} nuovo/i
+                        </span>
                       )}
                     </p>
                   </div>
