@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CustomNotificationProps {
@@ -44,13 +44,25 @@ export const CustomNotification: React.FC<CustomNotificationProps> = ({
 
   return (
     <div
-      className={`fixed z-50 top-4 right-4 max-w-sm bg-white rounded-lg border border-gray-200 shadow-lg transform transition-all duration-300 ${
+      className={`fixed z-50 top-4 right-4 max-w-sm bg-white rounded-lg border-2 border-blue-400 shadow-xl transform transition-all duration-300 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
       }`}
     >
       <div className="p-4 flex items-start">
-        <div className="flex-1 mr-4">
+        <div className="flex-shrink-0 mr-3">
+          <MessageSquare className="h-6 w-6 text-blue-500" />
+        </div>
+        <div className="flex-1 mr-2">
           <p className="font-medium text-gray-900">{message}</p>
+          <button 
+            className="mt-2 px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium rounded-full transition-colors"
+            onClick={() => {
+              setIsVisible(false);
+              setTimeout(onClose, 300);
+            }}
+          >
+            Apri chat
+          </button>
         </div>
         <Button
           variant="ghost" 
