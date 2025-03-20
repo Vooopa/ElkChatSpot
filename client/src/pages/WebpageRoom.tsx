@@ -227,24 +227,25 @@ const WebpageRoom = () => {
       // Riproduci suono di notifica solo se la chat non è già aperta
       playNotificationSound();
       
-      // Utilizzo di alert nativo che funziona su tutti i browser
+      // Utilizzo di notifica personalizzata
       try {
         if (message.nickname) {
-          window.alert(`Hai ricevuto un messaggio da ${message.nickname}`);
+          // Imposta il messaggio e mostra la notifica personalizzata
+          setNotificationFrom(message.nickname);
+          setNotificationMessage(`Hai ricevuto un messaggio da ${message.nickname}`);
+          setShowCustomNotification(true);
           
-          // Apri automaticamente la chat privata con il mittente
-          handleStartPrivateChat(message.nickname);
+          // Riproduci il suono di notifica
+          playNotificationSound();
+          
+          console.log("📣 Mostro notifica personalizzata per evento msg_notification da", message.nickname);
+          // La chat verrà aperta quando l'utente fa clic sul pulsante "Apri chat" nella notifica personalizzata
         }
       } catch (error) {
-        console.error("Errore durante la visualizzazione dell'alert:", error);
+        console.error("Errore durante la visualizzazione della notifica:", error);
         
-        // Se l'alert fallisce, usa un toast come fallback
-        toast({
-          title: `Nuovo messaggio da ${message.nickname}`,
-          description: message.text,
-          variant: "destructive",
-          duration: 10000
-        });
+        // Fallback con alert tradizionale
+        window.alert(`Hai ricevuto un messaggio da ${message.nickname}`);
         
         // Anche se l'alert fallisce, comunque apri la chat
         if (message.nickname) {
@@ -696,7 +697,7 @@ const WebpageRoom = () => {
           });
         });
         
-        // Notifica personalizzata con fallback all'alert standard
+        // Solo notifica personalizzata, senza alert standard
         try {
           // Imposta il messaggio e mostra la notifica personalizzata
           setNotificationFrom(fromUser);
@@ -704,14 +705,16 @@ const WebpageRoom = () => {
           setShowCustomNotification(true);
           console.log("🎯 Mostro notifica personalizzata per messaggio da", fromUser);
           
-          // Fallback tradizionale con alert nativo che funziona su tutti i browser
-          window.alert(`Hai ricevuto un messaggio da ${fromUser}`);
+          // Riproduci il suono di notifica
+          playNotificationSound();
           
-          // La chat verrà aperta quando l'utente chiude l'alert o fa clic sul pulsante "Apri chat" nella notifica personalizzata
+          // La chat verrà aperta quando l'utente fa clic sul pulsante "Apri chat" nella notifica personalizzata
+          // Non apriremo automaticamente la chat finché l'utente non interagisce con la notifica
         } catch (error) {
-          console.error("Errore con notifiche:", error);
+          console.error("Errore con notifiche personalizzate:", error);
           
-          // Fallback: solo apertura della finestra di chat
+          // Fallback con alert tradizionale
+          window.alert(`Hai ricevuto un messaggio da ${fromUser}`);
           handleStartPrivateChat(fromUser);
         }
         
