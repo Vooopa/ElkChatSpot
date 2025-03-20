@@ -172,10 +172,16 @@ const WebpageVisitorsList = ({
                 <div className="flex items-center gap-2">
                   {visitor.nickname !== currentUser && (
                     <Button 
-                      variant={visitor.unreadMessages ? 'destructive' : (activeChatWith === visitor.nickname ? 'default' : 'ghost')}
+                      variant={visitor.unreadMessages ? 'destructive' : 
+                             (activeChatWith === visitor.nickname ? 'default' : 
+                             (chatHistoryUsers.includes(visitor.nickname) ? 'default' : 'ghost'))}
                       size="sm"
-                      className={`relative px-2 py-1 ${visitor.unreadMessages ? 'chat-button-notification border-2 border-red-300' : (activeChatWith === visitor.nickname ? 'bg-blue-500 text-white hover:bg-blue-600 border border-blue-400 shadow-md' : '')}`}
-                      title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}${activeChatWith === visitor.nickname ? ' - Chat already open' : ''}`}
+                      className={`relative px-2 py-1 ${
+                        visitor.unreadMessages ? 'chat-button-notification border-2 border-red-300' : 
+                        (activeChatWith === visitor.nickname ? 'bg-blue-500 text-white hover:bg-blue-600 border border-blue-400 shadow-md' : 
+                        (chatHistoryUsers.includes(visitor.nickname) ? 'bg-blue-500 text-white hover:bg-blue-600 border border-blue-300' : ''))
+                      }`}
+                      title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}${activeChatWith === visitor.nickname ? ' - Chat already open' : ''}${chatHistoryUsers.includes(visitor.nickname) && activeChatWith !== visitor.nickname ? ' - Chat history exists' : ''}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         
@@ -183,6 +189,7 @@ const WebpageVisitorsList = ({
                         try {
                           // Aggiungi messaggio di debug
                           console.log(`✅ Clic sul pulsante della chat per ${visitor.nickname}`);
+                          console.log(`📝 Stato chat history: ${chatHistoryUsers.includes(visitor.nickname) ? 'Esiste cronologia' : 'Nessuna cronologia'}`);
                           
                           // Solo logging, niente alert
                           console.log(`Iniziando chat con ${visitor.nickname}`);
@@ -196,7 +203,7 @@ const WebpageVisitorsList = ({
                       <div className="flex items-center gap-1 relative">
                         <MessageSquare className={`h-4 w-4 ${
                           visitor.unreadMessages ? 'text-white' : 
-                          (activeChatWith === visitor.nickname ? 'text-white' : 'text-blue-500')
+                          (activeChatWith === visitor.nickname || chatHistoryUsers.includes(visitor.nickname) ? 'text-white' : 'text-blue-500')
                         }`} />
                         
                         {/* Messaggio non letto in formato badge */}
@@ -206,9 +213,14 @@ const WebpageVisitorsList = ({
                           </div>
                         ) : null}
                         
-                        {/* Indicatore chat attiva */}
-                        {activeChatWith === visitor.nickname && !visitor.unreadMessages && (
+                        {/* Indicatore chat attiva o cronologia chat */}
+                        {(activeChatWith === visitor.nickname && !visitor.unreadMessages) && (
                           <div className="absolute -top-2 -right-2 bg-blue-400 ring-2 ring-white w-3 h-3 rounded-full animate-pulse"></div>
+                        )}
+                        
+                        {/* Indicatore per chat nella cronologia ma non attiva */}
+                        {chatHistoryUsers.includes(visitor.nickname) && activeChatWith !== visitor.nickname && !visitor.unreadMessages && (
+                          <div className="absolute -top-2 -right-2 bg-blue-300 ring-1 ring-white w-2 h-2 rounded-full"></div>
                         )}
                       </div>
                     </Button>
