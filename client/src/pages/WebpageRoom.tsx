@@ -335,10 +335,21 @@ const WebpageRoom = () => {
               badge.textContent = (currentCount + 1).toString();
             }
             
-            // Forza un effetto di animazione resettandola e riavviandola
+            // ALERT IMPORTANTISSIMO NELLA CONSOLE!
+            console.log('🔴🔴🔴 ALERT: RICEVUTO MESSAGGIO PRIVATO! 🔴🔴🔴');
+            
+            // Forza un effetto di animazione più visibile
             badge.style.animation = 'none';
+            badge.style.backgroundColor = '#ff0000';
+            badge.style.border = '3px solid yellow';
+            badge.style.fontWeight = 'bold';
+            badge.style.fontSize = '16px';
+            badge.style.width = '25px';
+            badge.style.height = '25px';
+            badge.style.boxShadow = '0 0 15px 8px rgba(255, 0, 0, 0.9)';
+            
             setTimeout(() => {
-              badge.style.animation = 'pulseChat 1s infinite';
+              badge.style.animation = 'pulseChat 0.5s infinite';
             }, 10);
             
             // Rimuovi dopo un po'
