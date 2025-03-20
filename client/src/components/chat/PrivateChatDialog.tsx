@@ -35,8 +35,10 @@ const PrivateChatDialog = ({
   const [chatHistory, setChatHistory] = useState<Map<string, Message[]>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load chat history when the dialog opens
+  // Load chat history when the dialog opens and notify server about chat state
   useEffect(() => {
+    if (!socket) return;
+    
     if (isOpen && recipientName) {
       // If we already have chat history with this user, use it
       if (chatHistory.has(recipientName)) {
@@ -45,8 +47,22 @@ const PrivateChatDialog = ({
         // Otherwise start with an empty chat
         setMessages([]);
       }
+      
+      // Notifica il server che la chat con questo utente è aperta
+      console.log(`🔒 Notifica al server: Chat aperta con ${recipientName}`);
+      socket.emit("chat:private_state", {
+        recipient: recipientName,
+        isOpen: true
+      });
+    } else if (!isOpen && recipientName && socket) {
+      // Notifica il server che la chat con questo utente è chiusa
+      console.log(`🔒 Notifica al server: Chat chiusa con ${recipientName}`);
+      socket.emit("chat:private_state", {
+        recipient: recipientName,
+        isOpen: false
+      });
     }
-  }, [isOpen, recipientName, chatHistory]);
+  }, [isOpen, recipientName, chatHistory, socket]);
 
   // Set up a single socket event listener for the entire application
   useEffect(() => {

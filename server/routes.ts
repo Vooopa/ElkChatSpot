@@ -304,6 +304,15 @@ ${entryCode}
       io.to(message.roomId).emit("chat:message", completeMessage);
     });
     
+    // Handle private chat state changes (when a private chat window is opened or closed)
+    socket.on("chat:private_state", (data: { recipient: string, isOpen: boolean }) => {
+      if (!data.recipient) return;
+      
+      // Update the private chat state in storage
+      storage.setPrivateChatState(socket.id, data.recipient, data.isOpen);
+      console.log(`🔒 Private chat state changed: ${socket.id} ${data.isOpen ? 'opened' : 'closed'} chat with ${data.recipient}`);
+    });
+    
     // Handle private message
     socket.on("chat:private", (message: Message) => {
       if (!message.roomId || !message.text || !message.nickname || !message.recipient) return;
@@ -355,21 +364,28 @@ ${entryCode}
       });
       
       if (recipientSocketId) {
-        // Invia un nuovo evento speciale di notifica msg_notification al ricevente
-        io.to(recipientSocketId).emit("msg_notification", {
-          ...completeMessage,
-          isNotification: true, // Flag speciale per forzare la notifica
-          forceAlert: true // Flag per forzare l'alert
-        });
+        // Verifica se il destinatario ha già la chat aperta con il mittente
+        const isChatOpen = storage.getPrivateChatState(recipientSocketId, message.nickname);
+        console.log(`Chat già aperta tra ${recipientSocketId} e ${message.nickname}? ${isChatOpen ? 'SI' : 'NO'}`);
         
-        // Invia anche il messaggio normale per la cronologia della chat
+        // Invia il messaggio normale per la cronologia della chat sempre
         io.to(recipientSocketId).emit("chat:private", {
           ...completeMessage,
           isNotification: true
         });
         
-        // Log notification details
-        console.log(`💥 NOTIFICA INVIATA A ${recipientSocketId} DA ${message.nickname}`);
+        // Invia la notifica SOLO se la chat non è già aperta
+        if (!isChatOpen) {
+          io.to(recipientSocketId).emit("msg_notification", {
+            ...completeMessage,
+            isNotification: true, // Flag speciale per forzare la notifica
+            forceAlert: true // Flag per forzare l'alert
+          });
+          
+          console.log(`💥 NOTIFICA INVIATA A ${recipientSocketId} DA ${message.nickname} (chat chiusa)`);
+        } else {
+          console.log(`⏩ NESSUNA NOTIFICA A ${recipientSocketId} DA ${message.nickname} (chat già aperta)`);
+        }
         
         // Also send back to sender (without notification flag)
         socket.emit("chat:private", completeMessage);
@@ -395,6 +411,9 @@ ${entryCode}
     // Handle disconnection
     socket.on("disconnect", async () => {
       console.log(`Socket disconnected: ${socket.id}`);
+      
+      // Clear all private chat states for this socket
+      storage.clearPrivateChatState(socket.id);
       
       if (currentRoom && userNickname) {
         await leaveRoom(currentRoom, userNickname, isWebpageVisitor);
