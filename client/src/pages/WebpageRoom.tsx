@@ -604,140 +604,29 @@ const WebpageRoom = () => {
       roomId: roomId
     });
     
-    // If the message is to me and not from me, show a notification
+    // If the message is to me and not from me, update counter and play sound
     if (isToMe && !isFromMe) {
       console.log("🟢 This private message is FOR me from someone else!");
       
       // Play notification sound
       playNotificationSound();
       
-      // Update the visitor's unread count
+      // Update the visitor's unread count - this is the CORE functionality
       setVisitors(prevVisitors => {
         return prevVisitors.map(visitor => {
           if (visitor.nickname?.toLowerCase() === message.nickname?.toLowerCase()) {
+            const newCount = (visitor.unreadMessages || 0) + 1;
+            console.log(`🔔 Incrementato contatore per ${visitor.nickname} a ${newCount} messaggi non letti`);
             return {
               ...visitor,
-              unreadMessages: (visitor.unreadMessages || 0) + 1
+              unreadMessages: newCount
             };
           }
           return visitor;
         });
       });
       
-      // SOLUZIONE DEFINITIVA: Usa notifica popup custom
-      try {
-        // Creiamo un elemento div per la notifica
-        const notification = document.createElement('div');
-        notification.className = 'notification-popup';
-        
-        // Creiamo il contenuto della notifica
-        const title = document.createElement('h3');
-        title.style.fontSize = '16px';
-        title.style.fontWeight = 'bold';
-        title.style.marginBottom = '5px';
-        title.textContent = `📨 Nuovo messaggio da ${message.nickname}`;
-        
-        const messageText = document.createElement('p');
-        messageText.style.fontSize = '14px';
-        messageText.textContent = message.text.length > 50 ? 
-          message.text.substring(0, 50) + '...' : message.text;
-        
-        const button = document.createElement('button');
-        button.style.marginTop = '10px';
-        button.style.padding = '5px 10px';
-        button.style.backgroundColor = 'white';
-        button.style.color = '#ef4444';
-        button.style.border = 'none';
-        button.style.borderRadius = '5px';
-        button.style.fontWeight = 'bold';
-        button.style.cursor = 'pointer';
-        button.textContent = 'Rispondi ora';
-        
-        // Aggiungiamo anche un pulsante per chiudere
-        const closeButton = document.createElement('button');
-        closeButton.style.position = 'absolute';
-        closeButton.style.top = '5px';
-        closeButton.style.right = '5px';
-        closeButton.style.background = 'transparent';
-        closeButton.style.border = 'none';
-        closeButton.style.color = 'white';
-        closeButton.style.fontSize = '16px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.innerHTML = '&times;';
-        closeButton.title = 'Chiudi notifica';
-        
-        // Chiudi la notifica quando si fa clic su X
-        closeButton.addEventListener('click', () => {
-          if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-          }
-        });
-        
-        // Quando si fa clic sul pulsante, chiudi la notifica e apri la chat
-        button.addEventListener('click', () => {
-          // Chiudi la notifica quando clicchi sul pulsante
-          if (notification.parentNode) {
-            notification.parentNode.removeChild(notification);
-          }
-          
-          // Apri la chat con il mittente
-          handleStartPrivateChat(message.nickname || "");
-        });
-        
-        // Aggiungiamo gli elementi alla notifica
-        notification.appendChild(closeButton);
-        notification.appendChild(title);
-        notification.appendChild(messageText);
-        notification.appendChild(button);
-        
-        // Aggiungiamo la notifica al body
-        document.body.appendChild(notification);
-        
-        // Usa l'audio per attirare l'attenzione
-        playNotificationSound();
-        
-        // Rimuovi la notifica dopo 12 secondi
-        setTimeout(() => {
-          if (notification.parentNode) {
-            // Animazione di fade out
-            notification.style.opacity = '0';
-            notification.style.transform = 'translateY(-20px)';
-            notification.style.transition = 'opacity 0.3s, transform 0.3s';
-            
-            // Rimuovi l'elemento dopo l'animazione
-            setTimeout(() => {
-              if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-              }
-            }, 300);
-          }
-        }, 12000);
-      } catch (error) {
-        console.error('Errore durante la creazione della notifica popup:', error);
-      }
-      
-      // Show prominent toast notification come backup
-      toast({
-        title: `📨 Nuovo messaggio da ${message.nickname}!`,
-        description: message.text,
-        variant: "destructive",
-        duration: 10000,
-        action: (
-          <div 
-            className="cursor-pointer bg-red-500 text-white px-3 py-1 rounded font-medium hover:bg-red-600 transition-colors border-2 border-yellow-300 animate-pulse"
-            onClick={() => handleStartPrivateChat(message.nickname || "")}
-          >
-            RISPONDI ORA
-          </div>
-        )
-      });
-      
-      // Open the chat dialog after the alert is closed
-      setTimeout(() => {
-        handleStartPrivateChat(message.nickname || "");
-      }, 1000);
-      
-      console.log("🟢 Notification shown and chat opened automatically");
+      console.log("🟢 Unread message counter updated");
     } else {
       console.log("🟢 Private message not requiring notification in main component");
     }
