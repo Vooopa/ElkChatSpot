@@ -574,10 +574,14 @@ const WebpageRoom = () => {
             privateText
           });
           
-          // Alert per confermare che il messaggio è stato inviato
-          setTimeout(() => {
-            alert(`Messaggio privato inviato a ${recipient}`);
-          }, 300);
+          // Toast per confermare che il messaggio è stato inviato
+          toast({
+            title: "Messaggio inviato",
+            description: `Messaggio privato inviato a ${recipient}`,
+            variant: "default",
+            className: "bg-green-50 border border-green-200",
+            duration: 3000
+          });
           
           sendPrivateMessage(recipient, privateText);
           return;
@@ -829,9 +833,23 @@ const WebpageRoom = () => {
         } catch (error) {
           console.error("Errore con notifiche personalizzate:", error);
           
-          // Fallback con alert tradizionale
-          window.alert(`Hai ricevuto un messaggio da ${fromUser}`);
-          handleStartPrivateChat(fromUser);
+          // Fallback con toast notification invece di alert tradizionale
+          toast({
+            title: "Nuovo messaggio",
+            description: `Hai ricevuto un messaggio da ${fromUser}`,
+            variant: "destructive",
+            duration: 8000,
+            action: (
+              <div 
+                className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
+                onClick={() => handleStartPrivateChat(fromUser)}
+              >
+                Apri chat
+              </div>
+            )
+          });
+          // Apriamo automaticamente la chat dopo un breve ritardo
+          setTimeout(() => handleStartPrivateChat(fromUser), 1000);
         }
         
         console.log("🟢 Notification shown and counter updated");
