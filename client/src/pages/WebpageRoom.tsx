@@ -692,7 +692,7 @@ const WebpageRoom = () => {
         
         // SOLUZIONE FIREFOX-FRIENDLY: Usa alert standard che funzionano su tutti i browser
         try {
-          window.alert(`📨 NUOVO MESSAGGIO DA ${fromUser}:\n\n${message.text}`);
+          window.alert(`Hai ricevuto un messaggio da ${fromUser}`);
           // Apri la chat dopo che l'utente ha chiuso l'alert
           handleStartPrivateChat(fromUser);
         } catch (error) {
