@@ -433,10 +433,10 @@ const WebpageRoom = () => {
           // Suona la notifica
           playNotificationSound();
           
-          // Mostra notifica toast
+          // Mostra notifica toast personalizzata senza contenuto del messaggio
           toast({
-            title: `Nuovo messaggio da ${message.nickname}`,
-            description: message.text,
+            title: `Hai ricevuto un messaggio da ${message.nickname}`,
+            description: "Apri la chat per leggere il messaggio",
             variant: "destructive", // più evidente
             duration: 8000, // più a lungo
             action: (
@@ -444,7 +444,7 @@ const WebpageRoom = () => {
                 className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
                 onClick={() => handleStartPrivateChat(fromUser)}
               >
-                Rispondi
+                Apri chat
               </div>
             )
           });
@@ -873,8 +873,8 @@ const WebpageRoom = () => {
       // Show a reminder toast if there are unread messages
       if (currentRecipientVisitor.unreadMessages && currentRecipientVisitor.unreadMessages > 0) {
         toast({
-          title: `💬 Unread Messages`,
-          description: `You have ${currentRecipientVisitor.unreadMessages} unread message(s) from ${privateChatRecipient}`,
+          title: `💬 Messaggi non letti`,
+          description: `Hai messaggi non letti da ${privateChatRecipient}`,
           variant: "default",
           className: "bg-blue-50 border border-blue-200",
           duration: 4000
@@ -963,7 +963,7 @@ const WebpageRoom = () => {
                 <div className="ml-3 chat-button-notification flex items-center px-2 py-1 rounded-full text-xs font-medium border-2 border-yellow-300">
                   <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1 animate-ping"></span>
                   <span className="font-bold">
-                    {totalUnreadMessages} NUOVO/I MESSAGGIO/I PRIVATO/I
+                    NUOVI MESSAGGI PRIVATI
                   </span>
                 </div>
               )}
