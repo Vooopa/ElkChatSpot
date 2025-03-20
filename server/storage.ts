@@ -26,17 +26,61 @@ export interface IStorage {
   getWebpageVisitors(roomId: string): Map<string, WebpageVisitor>;
   updateWebpageVisitorStatus(roomId: string, socketId: string, status: UserStatus): void;
   updateWebpageVisitorActivity(roomId: string, socketId: string): void;
+  
+  // Private chat state methods
+  setPrivateChatState(socketId: string, recipientNickname: string, isOpen: boolean): void;
+  getPrivateChatState(socketId: string, recipientNickname: string): boolean;
+  clearPrivateChatState(socketId: string): void;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<number, User>;
   private rooms: Map<string, ChatRoom>;
+  private privateChatStates: Map<string, Set<string>>;
   currentId: number;
 
   constructor() {
     this.users = new Map();
     this.rooms = new Map();
+    this.privateChatStates = new Map(); // socketId -> Set of recipientNicknames
     this.currentId = 1;
+  }
+  
+  // Private chat state methods
+  setPrivateChatState(socketId: string, recipientNickname: string, isOpen: boolean): void {
+    // Normalize nickname for case-insensitive comparison
+    const normalizedRecipient = recipientNickname.toLowerCase();
+    
+    if (isOpen) {
+      // Add to open chats
+      if (!this.privateChatStates.has(socketId)) {
+        this.privateChatStates.set(socketId, new Set());
+      }
+      this.privateChatStates.get(socketId)!.add(normalizedRecipient);
+      console.log(`🔄 STATO CHAT: ${socketId} ha aperto chat con ${normalizedRecipient}`);
+    } else {
+      // Remove from open chats
+      if (this.privateChatStates.has(socketId)) {
+        this.privateChatStates.get(socketId)!.delete(normalizedRecipient);
+        console.log(`🔄 STATO CHAT: ${socketId} ha chiuso chat con ${normalizedRecipient}`);
+      }
+    }
+  }
+  
+  getPrivateChatState(socketId: string, recipientNickname: string): boolean {
+    // Normalize nickname for case-insensitive comparison
+    const normalizedRecipient = recipientNickname.toLowerCase();
+    
+    if (!this.privateChatStates.has(socketId)) {
+      return false;
+    }
+    
+    return this.privateChatStates.get(socketId)!.has(normalizedRecipient);
+  }
+  
+  clearPrivateChatState(socketId: string): void {
+    this.privateChatStates.delete(socketId);
+    console.log(`🔄 STATO CHAT: Tutte le chat di ${socketId} sono state chiuse`);
   }
 
   async getUser(id: number): Promise<User | undefined> {
