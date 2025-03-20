@@ -230,7 +230,7 @@ const WebpageRoom = () => {
       // Utilizzo di alert nativo che funziona su tutti i browser
       try {
         if (message.nickname) {
-          window.alert(`📨 NUOVO MESSAGGIO PRIVATO DA ${message.nickname}:\n\n${message.text}`);
+          window.alert(`Hai ricevuto un messaggio da ${message.nickname}`);
           
           // Apri automaticamente la chat privata con il mittente
           handleStartPrivateChat(message.nickname);
@@ -707,8 +707,7 @@ const WebpageRoom = () => {
           // Fallback tradizionale con alert nativo che funziona su tutti i browser
           window.alert(`Hai ricevuto un messaggio da ${fromUser}`);
           
-          // Apri la chat dopo che l'utente ha chiuso l'alert
-          handleStartPrivateChat(fromUser);
+          // La chat verrà aperta quando l'utente chiude l'alert o fa clic sul pulsante "Apri chat" nella notifica personalizzata
         } catch (error) {
           console.error("Errore con notifiche:", error);
           
