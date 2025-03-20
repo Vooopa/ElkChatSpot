@@ -356,6 +356,34 @@ const WebpageRoom = () => {
         messageTo: message.recipient
       });
       
+      // === CHAT HISTORY ===
+      // Quando ricevo un messaggio da qualcuno, lo aggiungo alla chat history
+      if (isToMe && !isFromMe && message.nickname) {
+        console.log(`📩 [PRIVATE] Controllo cronologia chat per ${message.nickname}`);
+        setChatHistoryUsers(prev => {
+          if (!prev.includes(message.nickname || '')) {
+            console.log(`📩 [PRIVATE] Aggiungo ${message.nickname} alla cronologia chat`);
+            return [...prev, message.nickname || ''];
+          }
+          console.log(`📩 [PRIVATE] ${message.nickname} già presente nella cronologia chat`);
+          return prev;
+        });
+      }
+      // === FINE CHAT HISTORY ===
+      
+      // Anche quando invio un messaggio, assicuriamoci che il destinatario sia nella chat history
+      if (isFromMe && !isToMe && message.recipient) {
+        console.log(`📩 [PRIVATE] Controllo cronologia chat per ${message.recipient}`);
+        setChatHistoryUsers(prev => {
+          if (!prev.includes(message.recipient || '')) {
+            console.log(`📩 [PRIVATE] Aggiungo ${message.recipient} alla cronologia chat`);
+            return [...prev, message.recipient || ''];
+          }
+          console.log(`📩 [PRIVATE] ${message.recipient} già presente nella cronologia chat`);
+          return prev;
+        });
+      }
+      
       // Controlla se c'è il flag speciale di notifica
       const isNotification = message.isNotification === true;
       
