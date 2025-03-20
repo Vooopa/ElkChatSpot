@@ -9,7 +9,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import { Socket } from "socket.io-client";
 
 interface WebpageVisitorsListProps {
@@ -145,7 +144,7 @@ const WebpageVisitorsList = ({
               id={`visitor-${visitor.nickname}`}
               className={`p-2 hover:bg-gray-50 rounded-md transition-colors ${
                 visitor.nickname === currentUser ? "bg-blue-50" : ""
-              } ${visitor.unreadMessages && visitor.unreadMessages > 0 ? "animate-pulse border border-red-400" : ""}`}
+              }`}
               onClick={() => setExpandedVisitor(
                 expandedVisitor === visitor.socketId ? null : visitor.socketId
               )}
@@ -164,16 +163,21 @@ const WebpageVisitorsList = ({
                       {visitor.nickname === currentUser && (
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
-                      {/* Rimosso l'indicatore "CHAT ATTIVA" come richiesto */}
-                      {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
-                        <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse border border-yellow-300">
-                          Nuovo messaggio
-                        </span>
+                      
+                      {/* Indicatore di nuovo messaggio - SENZA NUMERI */}
+                      {visitor.nickname !== currentUser && (
+                        <>
+                          {visitor.unreadMessages === 1 && (
+                            <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse shadow-md">
+                              Nuovo
+                            </span>
+                          )}
+                        </>
                       )}
                       
                       {/* Indicatore "sta scrivendo" */}
                       {visitor.nickname !== currentUser && typingUsers[visitor.nickname] && (
-                        <span className="ml-2 px-2 py-0.5 bg-yellow-400 text-yellow-800 text-xs font-medium rounded-full border border-yellow-500 animate-pulse">
+                        <span className="ml-2 px-2 py-0.5 bg-yellow-400 text-yellow-800 text-xs font-medium rounded-full animate-pulse">
                           sta scrivendo...
                         </span>
                       )}
@@ -184,40 +188,36 @@ const WebpageVisitorsList = ({
                   {visitor.nickname !== currentUser && (
                     <>
                     {chatHistoryUsers.includes(visitor.nickname) ? (
-                      // DESIGN COMPLETAMENTE DIVERSO PER CHAT CON MESSAGGI SCAMBIATI
-                      // VERSIONE COMPLETAMENTE RIPROGETTATA, SENZA NUMERI O CONTATORI VISIBILI
+                      // DESIGN PULSANTE CHAT: NUOVA VERSIONE COMPLETAMENTE DIVERSA CON GRADIENTE
                       <button
                         type="button"
-                        className={`relative inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium shadow-sm 
-                          ${visitor.unreadMessages && visitor.unreadMessages > 0 
-                            ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse border border-red-300' 
-                            : (activeChatWith === visitor.nickname 
-                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                                : 'bg-blue-500 text-white hover:bg-blue-600')
+                        className={`inline-flex items-center px-3 py-1.5 space-x-1.5 rounded-md shadow-sm
+                          ${activeChatWith === visitor.nickname 
+                            ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white font-semibold' 
+                            : 'bg-gradient-to-br from-blue-500 to-indigo-500 text-white font-medium'
                           }`}
-                        title={`Chat con ${visitor.nickname}${visitor.unreadMessages && visitor.unreadMessages > 0 ? ' (nuovi messaggi)' : ''}${activeChatWith === visitor.nickname ? ' - Chat aperta' : ''}`}
+                        title={`Chat con ${visitor.nickname}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log(`Iniziando chat con ${visitor.nickname} (chat history)`);
                           onStartPrivateChat(visitor.nickname);
                         }}
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        Chat
+                        <MessageCircle className="h-4 w-4" />
+                        <span>Chat</span>
                       </button>
                     ) : (
-                      // DESIGN MINIMALISTA PER CHAT SENZA MESSAGGI
+                      // DESIGN MINIMALISTA - VERSIONE GRIGIA
                       <button
                         type="button"
-                        className="relative inline-flex items-center p-1.5 rounded-md text-gray-500 bg-gray-100 hover:bg-gray-200"
-                        title={`Avvia chat con ${visitor.nickname}`}
+                        className="inline-flex items-center px-2.5 py-1 space-x-1 rounded-md text-sm font-normal text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+                        title={`Inizia una chat con ${visitor.nickname}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          console.log(`Iniziando chat con ${visitor.nickname} (nuova)`);
                           onStartPrivateChat(visitor.nickname);
                         }}
                       >
-                        <MessageSquare className="h-4 w-4" />
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        <span>Chat</span>
                       </button>
                     )}
                     </>
