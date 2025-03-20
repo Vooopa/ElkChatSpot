@@ -604,7 +604,7 @@ const WebpageRoom = () => {
       roomId: roomId
     });
     
-    // If the message is to me and not from me, update counter and play sound
+    // If the message is to me and not from me, show a notification
     if (isToMe && !isFromMe) {
       console.log("🟢 This private message is FOR me from someone else!");
       
@@ -626,7 +626,78 @@ const WebpageRoom = () => {
         });
       });
       
-      console.log("🟢 Unread message counter updated");
+      // Crea un elemento DOM per mostrare la notifica
+      try {
+        // Crea la modale fullscreen
+        const modal = document.createElement('div');
+        modal.className = "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50";
+        modal.style.zIndex = "9999";
+        
+        // Crea il contenitore del messaggio
+        const messageBox = document.createElement('div');
+        messageBox.className = "bg-red-600 border-4 border-yellow-400 p-6 rounded-xl max-w-md w-full mx-4 text-center shadow-2xl";
+        messageBox.style.animation = "pulse 1s infinite";
+        
+        // Titolo della notifica
+        const title = document.createElement('h2');
+        title.className = "text-white text-2xl font-bold mb-4";
+        title.textContent = `📨 NUOVO MESSAGGIO DA ${message.nickname}`;
+        
+        // Contenuto del messaggio
+        const content = document.createElement('p');
+        content.className = "text-white text-lg mb-6";
+        content.textContent = message.text;
+        
+        // Pulsante di risposta
+        const button = document.createElement('button');
+        button.className = "bg-white text-red-600 font-bold py-3 px-6 rounded-full text-lg hover:bg-yellow-100 transition-colors";
+        button.textContent = "RISPONDI ORA";
+        
+        // Aggiungi un effetto di stile al pulsante
+        button.style.boxShadow = "0 0 15px rgba(255, 255, 255, 0.5)";
+        
+        // Aggiungi event listener al pulsante
+        button.addEventListener('click', () => {
+          document.body.removeChild(modal);
+          handleStartPrivateChat(message.nickname || "");
+        });
+        
+        // Aggiungi tutto alla modale
+        messageBox.appendChild(title);
+        messageBox.appendChild(content);
+        messageBox.appendChild(button);
+        modal.appendChild(messageBox);
+        
+        // Aggiungi la modale al body
+        document.body.appendChild(modal);
+        
+        // Aggiungi stile CSS per l'animazione
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes pulse {
+            0%, 100% {
+              transform: scale(1);
+              box-shadow: 0 0 20px rgba(255, 255, 0, 0.7);
+            }
+            50% {
+              transform: scale(1.05);
+              box-shadow: 0 0 30px rgba(255, 255, 0, 1);
+            }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        // Rimuovi la modale dopo 8 secondi se l'utente non fa clic
+        setTimeout(() => {
+          if (document.body.contains(modal)) {
+            document.body.removeChild(modal);
+          }
+        }, 8000);
+      } catch (error) {
+        console.error('Errore nella creazione della notifica:', error);
+      }
+      
+      console.log("🟢 Notification shown and counter updated");
     } else {
       console.log("🟢 Private message not requiring notification in main component");
     }

@@ -12,6 +12,53 @@
   }
 }
 
+/* Modal animations */
+@keyframes modalFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes flashBackground {
+  0%, 100% {
+    background-color: rgba(239, 68, 68, 0.9);
+  }
+  50% {
+    background-color: rgba(245, 158, 11, 0.9);
+  }
+}
+
+/* Private message full-screen notification */
+.private-message-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.private-message-content {
+  background: linear-gradient(45deg, #ef4444, #dc2626);
+  border: 4px solid yellow;
+  border-radius: 15px;
+  padding: 25px;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  animation: modalFadeIn 0.3s, flashBackground 1s infinite;
+  box-shadow: 0 0 50px rgba(255, 0, 0, 0.5);
+}
+
 /* Base animation keyframes */
 @keyframes pulseChat {
   0%, 100% {
