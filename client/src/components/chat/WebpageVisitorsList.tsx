@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { WebpageVisitor } from "@shared/schema";
 import { UserStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
-import { User, Users, Clock, MessageSquare } from "lucide-react";
+import { User, Users, Clock, MessageSquare, MessageCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -210,10 +210,18 @@ const WebpageVisitorsList = ({
                       }}
                     >
                       <div className="flex items-center gap-1 relative">
-                        <MessageSquare className={`h-4 w-4 ${
-                          visitor.unreadMessages ? 'text-white' : 
-                          (activeChatWith === visitor.nickname || chatHistoryUsers.includes(visitor.nickname) ? 'text-white' : 'text-blue-500')
-                        }`} />
+                        {chatHistoryUsers.includes(visitor.nickname) ? (
+                          // Icona diversa per chat con cui è stato scambiato almeno un messaggio
+                          <MessageCircle className={`h-4 w-4 ${
+                            visitor.unreadMessages ? 'text-white' : 
+                            (activeChatWith === visitor.nickname ? 'text-white' : 'text-white')
+                          }`} />
+                        ) : (
+                          // Icona predefinita per chat senza messaggi
+                          <MessageSquare className={`h-4 w-4 ${
+                            visitor.unreadMessages ? 'text-white' : 'text-blue-500'
+                          }`} />
+                        )}
                         
                         {/* Messaggio non letto in formato badge */}
                         {visitor.unreadMessages && visitor.unreadMessages > 0 ? (
