@@ -85,6 +85,11 @@ const WebpageRoom = () => {
   const [showCustomNotification, setShowCustomNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationFrom, setNotificationFrom] = useState("");
+  
+  // Array di utenti con cui è stato scambiato almeno un messaggio
+  const [chatHistoryUsers, setChatHistoryUsers] = useState<string[]>([]);
+  // Utenti che stanno scrivendo
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   // Set up socket connection when the component loads
   useEffect(() => {
@@ -521,6 +526,15 @@ const WebpageRoom = () => {
       return;
     }
     
+    // Aggiungi il destinatario alla lista degli utenti con cui è stata avviata una chat
+    setChatHistoryUsers(prev => {
+      if (!prev.includes(recipient)) {
+        console.log(`Aggiunto ${recipient} alla cronologia chat`);
+        return [...prev, recipient];
+      }
+      return prev;
+    });
+    
     const message: Message = {
       roomId,
       text,
@@ -662,6 +676,15 @@ const WebpageRoom = () => {
       console.log("🟢 This private message is FOR me from someone else!");
       
       const fromUser = message.nickname || '';
+      
+      // Aggiungi l'utente alla lista di chat attive se non è già presente
+      setChatHistoryUsers(prev => {
+        if (!prev.includes(fromUser)) {
+          console.log(`Aggiunto ${fromUser} alla cronologia chat (mittente)`);
+          return [...prev, fromUser];
+        }
+        return prev;
+      });
       
       // Verifica se la chat privata è già aperta con questo utente
       const isChatAlreadyOpenWithSender = 
@@ -888,6 +911,7 @@ const WebpageRoom = () => {
             onStartPrivateChat={handleStartPrivateChat}
             socket={socket}
             activeChatWith={privateChatOpen ? privateChatRecipient : null}
+            chatHistoryUsers={chatHistoryUsers}
           />
         </div>
       </div>
