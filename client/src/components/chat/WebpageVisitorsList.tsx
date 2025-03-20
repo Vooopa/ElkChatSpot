@@ -203,7 +203,23 @@ const WebpageVisitorsList = ({
                       size="sm"
                       className={`relative px-2 py-1 ${visitor.unreadMessages ? 'chat-button-notification border-2 border-red-300' : ''}`}
                       title={`Chat privately with ${visitor.nickname}${visitor.unreadMessages ? ` (${visitor.unreadMessages} unread)` : ''}`}
-                      onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        
+                        // Rimuovi gli indicatori visivi creati tramite DOM
+                        const visitorElement = document.getElementById(`visitor-${visitor.nickname}`);
+                        if (visitorElement) {
+                          visitorElement.classList.remove('flash-notification');
+                          
+                          const indicators = visitorElement.querySelectorAll('[style*="animation: blink"]');
+                          const counters = visitorElement.querySelectorAll('[style*="border: 3px solid yellow"]');
+                          
+                          indicators.forEach(el => el.parentNode?.removeChild(el));
+                          counters.forEach(el => el.parentNode?.removeChild(el));
+                        }
+                        
+                        onStartPrivateChat(visitor.nickname);
+                      }}
                     >
                       <div className="flex items-center gap-1">
                         <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-white' : 'text-blue-500'}`} />

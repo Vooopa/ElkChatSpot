@@ -789,6 +789,38 @@ const WebpageRoom = () => {
   const totalUnreadMessages = visitors.reduce((sum, visitor) => {
     return sum + (visitor.unreadMessages || 0);
   }, 0);
+  
+  // MODALITÀ DIMOSTRAZIONE: Simula messaggi non letti per il primo visitatore che non è l'utente corrente
+  useEffect(() => {
+    if (visitors.length > 0 && !privateChatOpen) {
+      // Trova il primo visitatore che non è l'utente corrente
+      const otherVisitor = visitors.find(v => v.nickname !== currentUser);
+      
+      if (otherVisitor) {
+        console.log("🔴 SIMULAZIONE: Aggiungo messaggi non letti per dimostrare le notifiche");
+        // Incrementa i messaggi non letti di questo visitatore per simulare notifiche
+        setTimeout(() => {
+          setVisitors(prev => prev.map(v => {
+            if (v.nickname === otherVisitor.nickname) {
+              return { ...v, unreadMessages: 3 };
+            }
+            return v;
+          }));
+          
+          // Suona la notifica
+          playNotificationSound();
+          
+          // Mostra un toast informativo
+          toast({
+            title: "🔄 Simulazione",
+            description: `Abbiamo simulato 3 messaggi non letti da ${otherVisitor.nickname} per dimostrare le notifiche`,
+            variant: "default",
+            duration: 5000
+          });
+        }, 3000);
+      }
+    }
+  }, [visitors, currentUser, privateChatOpen]);
 
   return (
     <div className="flex flex-col h-screen bg-gray-50">
