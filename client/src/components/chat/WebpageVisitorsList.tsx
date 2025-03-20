@@ -188,17 +188,16 @@ const WebpageVisitorsList = ({
                         onStartPrivateChat(visitor.nickname);
                       }}
                     >
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 relative">
                         <MessageSquare className={`h-4 w-4 ${visitor.unreadMessages ? 'text-white' : 'text-blue-500'}`} />
-                        <span className={visitor.unreadMessages ? 'font-bold' : 'hidden'}>
-                          {visitor.unreadMessages ? `${visitor.unreadMessages} NEW!` : ''}
-                        </span>
+                        
+                        {/* Messaggio non letto in formato badge */}
+                        {visitor.unreadMessages && visitor.unreadMessages > 0 ? (
+                          <div className="absolute -top-3 -right-3 bg-red-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold border-2 border-yellow-300 shadow-lg animate-pulse">
+                            {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
+                          </div>
+                        ) : null}
                       </div>
-                      {visitor.unreadMessages && visitor.unreadMessages > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-yellow-500 text-black text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold border-2 border-white animate-ping">
-                          {visitor.unreadMessages > 9 ? '9+' : visitor.unreadMessages}
-                        </span>
-                      )}
                     </Button>
                   )}
                   <div className="flex items-center text-sm text-gray-500">
