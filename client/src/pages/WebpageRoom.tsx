@@ -8,6 +8,7 @@ import NewWebpageVisitorsList from "@/components/chat/NewWebpageVisitorsList";
 import WebpageUrlInput from "@/components/chat/WebpageUrlInput";
 import NicknameModal from "@/components/chat/NicknameModal";
 import PrivateChatDialog from "@/components/chat/PrivateChatDialog";
+import WebpagePreview from "@/components/chat/WebpagePreview";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageArea from "@/components/chat/MessageArea";
 import Header from "@/components/chat/Header";
