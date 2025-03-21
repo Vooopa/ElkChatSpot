@@ -204,7 +204,20 @@ const WebpageRoom = () => {
     
     const updateVisitorList = (roomVisitors: WebpageVisitor[]) => {
       console.log("Received visitor list:", roomVisitors);
+      
+      // Aggiorna i visitatori nella tab attiva
       setVisitors(roomVisitors);
+      
+      // Aggiorna anche i dati salvati per la tab corrente
+      if (activeTabId) {
+        setTabData(prev => ({
+          ...prev,
+          [activeTabId]: {
+            ...prev[activeTabId],
+            visitors: roomVisitors
+          }
+        }));
+      }
     };
     
     // Register event listeners with debugging
@@ -292,20 +305,61 @@ const WebpageRoom = () => {
       console.log("🛑 [RICEVUTO] chat:message", message);
       logCurrentState("chat:message event");
       
-      // ULTRA SEMPLICE - aggiungi il messaggio e basta
-      console.log("🛑 MESSAGGIO NORMALE RICEVUTO!");
-      
-      // Aggiungi direttamente alla lista (duplicati inclusi)
-      setMessages(prevMessages => {
-        console.log(`🛑 Messaggi prima: ${prevMessages.length}, dopo: ${prevMessages.length + 1}`);
-        return [...prevMessages, message];
-      });
-      
-      // Forza un nuovo render manuale per verificare che setMessages funzioni
-      // Questo è un hack, ma potrebbe aiutare a risolvere il problema
-      setTimeout(() => {
-        console.log("🛑 [FORZATO] Verifica messaggio aggiunto:", messages.length);
-      }, 500);
+      // Verifica che il messaggio appartenga alla stanza corrente
+      if (message.roomId === roomId) {
+        console.log("🛑 MESSAGGIO NORMALE RICEVUTO PER LA STANZA CORRENTE!");
+        
+        // Aggiungi direttamente alla lista (duplicati inclusi)
+        setMessages(prevMessages => {
+          console.log(`🛑 Messaggi prima: ${prevMessages.length}, dopo: ${prevMessages.length + 1}`);
+          return [...prevMessages, message];
+        });
+        
+        // Aggiorna anche i dati salvati per la tab corrente
+        if (activeTabId) {
+          setTabData(prev => ({
+            ...prev,
+            [activeTabId]: {
+              ...prev[activeTabId],
+              messages: [...(prev[activeTabId].messages || []), message]
+            }
+          }));
+        }
+        
+        // Forza un nuovo render manuale per verificare che setMessages funzioni
+        setTimeout(() => {
+          console.log("🛑 [FORZATO] Verifica messaggio aggiunto:", messages.length);
+        }, 500);
+      } else {
+        console.log(`🛑 MESSAGGIO RICEVUTO PER UN'ALTRA STANZA: ${message.roomId}`);
+        
+        // Cerca la tab a cui appartiene questo messaggio
+        const tabIdForMessage = Object.keys(tabData).find(
+          tabId => tabData[tabId].roomId === message.roomId
+        );
+        
+        if (tabIdForMessage) {
+          console.log(`🛑 Aggiornando i messaggi per la tab ${tabIdForMessage}`);
+          // Aggiorna i dati per quella tab specifica
+          setTabData(prev => ({
+            ...prev,
+            [tabIdForMessage]: {
+              ...prev[tabIdForMessage],
+              messages: [...(prev[tabIdForMessage].messages || []), message],
+              hasUnreadMessages: tabIdForMessage !== activeTabId
+            }
+          }));
+          
+          // Aggiorna anche l'indicatore visivo nella tab
+          if (tabIdForMessage !== activeTabId) {
+            setTabs(prev => prev.map(tab => 
+              tab.id === tabIdForMessage 
+                ? {...tab, unread: true} 
+                : tab
+            ));
+          }
+        }
+      }
     });
     
     // Gestione evento "utente sta scrivendo"
