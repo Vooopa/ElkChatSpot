@@ -554,6 +554,12 @@ const WebpageRoom = () => {
   // Gestione degli URL delle pagine web da monitorare
   const handleUrlSubmit = (submittedUrl: string) => {
     // Quando viene inviato un nuovo URL, crea una nuova tab per quell'URL
+    
+    // Resetta i messaggi e i visitatori
+    setMessages([]);
+    setVisitors([]);
+    
+    // Imposta il nuovo URL
     setUrl(submittedUrl);
     
     // Genera un ID unico per la tab
@@ -1157,8 +1163,26 @@ const WebpageRoom = () => {
       console.log(`Leaving room ${roomId} before switching tabs`);
       // Opzionale: lasciare esplicitamente la stanza corrente
       // socket.emit("webpage:leave", { roomId });
+      
+      // Prima salviamo lo stato attuale della tab corrente
+      setTabData(prev => ({
+        ...prev,
+        [activeTabId]: {
+          ...prev[activeTabId],
+          messages: messages,
+          visitors: visitors,
+          roomId: roomId,
+          url: url
+        }
+      }));
     }
     
+    // È importante resettare i messaggi e i visitatori 
+    // prima di attivare la nuova tab, per evitare che i messaggi vecchi appaiano temporaneamente
+    setMessages([]);
+    setVisitors([]);
+    
+    // Imposta la nuova tab come attiva
     setActiveTabId(tabId);
     
     // Caricare i dati della tab selezionata
@@ -1270,6 +1294,11 @@ const WebpageRoom = () => {
         hasUnreadMessages: false
       }
     }));
+    
+    // È importante resettare i messaggi e i visitatori
+    // prima di attivare la nuova tab, per evitare che i messaggi vecchi appaiano temporaneamente
+    setMessages([]);
+    setVisitors([]);
     
     // Attiva la nuova tab
     setActiveTabId(tabId);
