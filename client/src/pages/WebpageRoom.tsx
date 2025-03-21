@@ -99,10 +99,8 @@ const WebpageRoom = () => {
   const [userTypingTimeouts, setUserTypingTimeouts] = useState<{[key: string]: NodeJS.Timeout}>({}); // Timeout per ogni utente
 
   // Tabs state
-  const [tabs, setTabs] = useState<ChatTab[]>([
-    { id: "main", url: "", title: "Chat Principale" }
-  ]);
-  const [activeTabId, setActiveTabId] = useState<string>("main");
+  const [tabs, setTabs] = useState<ChatTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string>("");
   const [showNewTabDialog, setShowNewTabDialog] = useState(false);
   const [newTabUrl, setNewTabUrl] = useState<string>("");
   
@@ -113,17 +111,10 @@ const WebpageRoom = () => {
       visitors: WebpageVisitor[];
       roomId: string | null;
       url: string;
+      nickname: string;
       hasUnreadMessages?: boolean;
     }
-  }>({
-    main: {
-      messages: [],
-      visitors: [],
-      roomId: null,
-      url: "",
-      hasUnreadMessages: false
-    }
-  });
+  }>({});
 
   // Set up socket connection when the component loads
   useEffect(() => {
@@ -562,28 +553,38 @@ const WebpageRoom = () => {
 
   // Gestione degli URL delle pagine web da monitorare
   const handleUrlSubmit = (submittedUrl: string) => {
-    // Quando viene inviato un nuovo URL principale, lo imposta come URL principale
-    // e imposta anche l'URL della tab principale
+    // Quando viene inviato un nuovo URL, crea una nuova tab per quell'URL
     setUrl(submittedUrl);
     
-    // Aggiorna anche il tab principale con il nuovo URL
-    const mainTab = tabs.find(tab => tab.id === "main");
-    if (mainTab) {
-      setTabs(prev => prev.map(tab => 
-        tab.id === "main" 
-          ? {...tab, url: submittedUrl, title: `Chat Principale - ${getDomainFromUrl(submittedUrl)}`} 
-          : tab
-      ));
-      
-      // Aggiorna i dati della tab principale
-      setTabData(prev => ({
-        ...prev,
-        main: {
-          ...prev.main,
-          url: submittedUrl
-        }
-      }));
-    }
+    // Genera un ID unico per la tab
+    const tabId = `tab-${Date.now()}`;
+    
+    // Crea la tab
+    const newTab: ChatTab = {
+      id: tabId,
+      url: submittedUrl,
+      favicon: `https://www.google.com/s2/favicons?domain=${getDomainFromUrl(submittedUrl)}&sz=32`,
+      title: getDomainFromUrl(submittedUrl)
+    };
+    
+    // Aggiungi la tab
+    setTabs(prev => [...prev, newTab]);
+    
+    // Inizializza i dati della tab
+    setTabData(prev => ({
+      ...prev,
+      [tabId]: {
+        messages: [],
+        visitors: [],
+        roomId: null,
+        url: submittedUrl,
+        nickname: "",
+        hasUnreadMessages: false
+      }
+    }));
+    
+    // Imposta la tab come attiva
+    setActiveTabId(tabId);
     
     setShowUrlInput(false);
     setShowNicknameModal(true);
@@ -600,8 +601,16 @@ const WebpageRoom = () => {
     setNicknameError(undefined);
     setShowNicknameModal(false);
     
-    // Attiva la tab principale
-    setActiveTabId("main");
+    // Aggiorna anche la tab corrente con il nickname
+    if (activeTabId) {
+      setTabData(prev => ({
+        ...prev,
+        [activeTabId]: {
+          ...prev[activeTabId],
+          nickname: newNickname
+        }
+      }));
+    }
     
     // Join webpage-specific room for current URL
     console.log(`Joining webpage with URL: ${url}, nickname: ${newNickname}`);
@@ -1099,9 +1108,19 @@ const WebpageRoom = () => {
         }
       }));
       
-      // Update URL in browser if it's not the main tab
-      if (tabId !== "main" && tabData[tabId].url) {
+      // Update URL in browser
+      if (tabData[tabId].url) {
         setLocation(`/webpage/${encodeURIComponent(tabData[tabId].url)}`);
+      }
+      
+      // Join the room for this tab if not already joined
+      if (socket && isConnected && nickname && tabData[tabId].url) {
+        console.log(`Joining room for tab ${tabId} with URL: ${tabData[tabId].url}`);
+        socket.emit("webpage:join", {
+          url: tabData[tabId].url,
+          nickname: nickname,
+          pageTitle: `Chat about ${getDomainFromUrl(tabData[tabId].url)}`
+        });
       }
     }
   };
@@ -1167,6 +1186,7 @@ const WebpageRoom = () => {
         visitors: [],
         roomId: null,
         url: formattedUrl,
+        nickname: nickname,
         hasUnreadMessages: false
       }
     }));
