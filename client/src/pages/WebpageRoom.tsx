@@ -1078,6 +1078,36 @@ const WebpageRoom = () => {
     });
   };
   
+  // Effect to update tabData when roomId is set or changed
+  useEffect(() => {
+    if (roomId && activeTabId && tabData[activeTabId]) {
+      console.log(`Updating tab ${activeTabId} with room ID ${roomId}`);
+      setTabData(prev => ({
+        ...prev,
+        [activeTabId]: {
+          ...prev[activeTabId],
+          roomId: roomId
+        }
+      }));
+    }
+  }, [roomId, activeTabId]);
+  
+  // Effect to update tabData when messages, visitors, or URL changes
+  useEffect(() => {
+    if (activeTabId && tabData[activeTabId]) {
+      console.log(`Updating tab ${activeTabId} data with latest messages and visitors`);
+      setTabData(prev => ({
+        ...prev,
+        [activeTabId]: {
+          ...prev[activeTabId],
+          messages: messages,
+          visitors: visitors,
+          url: url
+        }
+      }));
+    }
+  }, [messages, visitors, url, activeTabId]);
+  
   // Format domain name for display
   const getDomainFromUrl = (urlString: string) => {
     try {
@@ -1130,9 +1160,6 @@ const WebpageRoom = () => {
   };
   
   const handleTabClose = (tabId: string) => {
-    // Non permettere di chiudere la tab principale
-    if (tabId === "main") return;
-    
     // Rimuovi la tab dall'array delle tab
     setTabs(prev => prev.filter(tab => tab.id !== tabId));
     
@@ -1143,9 +1170,16 @@ const WebpageRoom = () => {
       return newTabData;
     });
     
-    // Se la tab attiva è quella che stiamo chiudendo, passa alla tab principale
+    // Se la tab attiva è quella che stiamo chiudendo, passa a un'altra tab
     if (activeTabId === tabId) {
-      handleTabChange("main");
+      // Trova la prima tab disponibile
+      const remainingTabs = tabs.filter(tab => tab.id !== tabId);
+      if (remainingTabs.length > 0) {
+        handleTabChange(remainingTabs[0].id);
+      } else {
+        // Se non ci sono altre tab, mostra l'input dell'URL
+        setShowUrlInput(true);
+      }
     }
   };
   
