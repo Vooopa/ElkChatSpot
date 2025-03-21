@@ -12,10 +12,14 @@ import WebpagePreview from "@/components/chat/WebpagePreview";
 import MessageInput from "@/components/chat/MessageInput";
 import MessageArea from "@/components/chat/MessageArea";
 import Header from "@/components/chat/Header";
-import { ArrowLeft } from "lucide-react";
+import ChatTabs, { ChatTab } from "@/components/chat/ChatTabs";
+import { ArrowLeft, GlobeIcon, PlusCircle } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { CustomNotification } from "@/components/ui/custom-notification";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 // Migliorata la funzione di notifica sonora
 const playNotificationSound = () => {
@@ -93,6 +97,33 @@ const WebpageRoom = () => {
   // Utenti che stanno scrivendo
   const [typingUsers, setTypingUsers] = useState<{[key: string]: boolean}>({});
   const [userTypingTimeouts, setUserTypingTimeouts] = useState<{[key: string]: NodeJS.Timeout}>({}); // Timeout per ogni utente
+
+  // Tabs state
+  const [tabs, setTabs] = useState<ChatTab[]>([
+    { id: "main", url: "", title: "Chat Principale" }
+  ]);
+  const [activeTabId, setActiveTabId] = useState<string>("main");
+  const [showNewTabDialog, setShowNewTabDialog] = useState(false);
+  const [newTabUrl, setNewTabUrl] = useState<string>("");
+  
+  // State per tracciare chat e visitatori per ogni tab
+  const [tabData, setTabData] = useState<{
+    [key: string]: {
+      messages: Message[];
+      visitors: WebpageVisitor[];
+      roomId: string | null;
+      url: string;
+      hasUnreadMessages?: boolean;
+    }
+  }>({
+    main: {
+      messages: [],
+      visitors: [],
+      roomId: null,
+      url: "",
+      hasUnreadMessages: false
+    }
+  });
 
   // Set up socket connection when the component loads
   useEffect(() => {
@@ -978,6 +1009,114 @@ const WebpageRoom = () => {
     }
   };
 
+  // Funzioni per il sistema di tab
+  const handleTabChange = (tabId: string) => {
+    setActiveTabId(tabId);
+    
+    // Caricare i dati della tab selezionata
+    if (tabData[tabId]) {
+      setMessages(tabData[tabId].messages);
+      setVisitors(tabData[tabId].visitors);
+      setRoomId(tabData[tabId].roomId);
+      setUrl(tabData[tabId].url);
+      
+      // Reset unread flag for this tab
+      setTabData(prev => ({
+        ...prev,
+        [tabId]: {
+          ...prev[tabId],
+          hasUnreadMessages: false
+        }
+      }));
+      
+      // Update URL in browser if it's not the main tab
+      if (tabId !== "main" && tabData[tabId].url) {
+        setLocation(`/webpage/${encodeURIComponent(tabData[tabId].url)}`);
+      }
+    }
+  };
+  
+  const handleAddNewTab = () => {
+    setShowNewTabDialog(true);
+  };
+  
+  const handleTabClose = (tabId: string) => {
+    // Non permettere di chiudere la tab principale
+    if (tabId === "main") return;
+    
+    // Rimuovi la tab dall'array delle tab
+    setTabs(prev => prev.filter(tab => tab.id !== tabId));
+    
+    // Rimuovi i dati associati alla tab
+    setTabData(prev => {
+      const newTabData = { ...prev };
+      delete newTabData[tabId];
+      return newTabData;
+    });
+    
+    // Se la tab attiva è quella che stiamo chiudendo, passa alla tab principale
+    if (activeTabId === tabId) {
+      handleTabChange("main");
+    }
+  };
+  
+  const handleNewTabSubmit = () => {
+    if (!newTabUrl.trim()) {
+      toast({
+        title: "Errore",
+        description: "Inserisci un URL valido",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Normalizza l'URL
+    let formattedUrl = newTabUrl;
+    if (!formattedUrl.startsWith('http')) {
+      formattedUrl = `https://${formattedUrl}`;
+    }
+    
+    // Genera un ID unico per la tab
+    const tabId = `tab-${Date.now()}`;
+    
+    // Aggiungi la nuova tab
+    const newTab: ChatTab = {
+      id: tabId,
+      url: formattedUrl,
+      favicon: `https://www.google.com/s2/favicons?domain=${getDomainFromUrl(formattedUrl)}&sz=32`,
+      title: getDomainFromUrl(formattedUrl)
+    };
+    
+    setTabs(prev => [...prev, newTab]);
+    
+    // Inizializza i dati della tab
+    setTabData(prev => ({
+      ...prev,
+      [tabId]: {
+        messages: [],
+        visitors: [],
+        roomId: null,
+        url: formattedUrl,
+        hasUnreadMessages: false
+      }
+    }));
+    
+    // Attiva la nuova tab
+    setActiveTabId(tabId);
+    
+    // Chiudi il dialog
+    setShowNewTabDialog(false);
+    setNewTabUrl("");
+    
+    // Aggiungi utente alla stanza per la nuova tab
+    if (socket && nickname) {
+      socket.emit("webpage:join", {
+        url: formattedUrl,
+        nickname: nickname
+      });
+    }
+  };
+
   if (showUrlInput) {
     return <WebpageUrlInput onSubmit={handleUrlSubmit} />;
   }
@@ -1034,7 +1173,7 @@ const WebpageRoom = () => {
             {hasUnreadMessages && (
               <button 
                 onClick={() => {
-                  // Find first visitor with unread messages and open chat (usando sia contatore che flag booleano)
+                  // Find first visitor with unread messages and open chat
                   const visitorWithUnread = visitors.find(v => 
                     (((v.unreadMessages || 0) > 0) || v.hasUnreadMessages) && v.nickname !== nickname
                   );
@@ -1058,6 +1197,15 @@ const WebpageRoom = () => {
           </div>
         </div>
       </div>
+
+      {/* Sistema di tab per gestire diverse chat contemporaneamente */}
+      <ChatTabs 
+        tabs={tabs} 
+        activeTabId={activeTabId} 
+        onTabChange={handleTabChange} 
+        onTabClose={handleTabClose}
+        onAddNewTab={handleAddNewTab}
+      />
 
       {/* Anteprima della pagina web */}
       <div className="px-4 py-2">
@@ -1105,6 +1253,35 @@ const WebpageRoom = () => {
         socket={socket}
         roomId={roomId || ""}
       />
+      
+      {/* Dialog per aggiungere una nuova tab */}
+      <Dialog open={showNewTabDialog} onOpenChange={setShowNewTabDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Aggiungi nuova tab</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">
+              Inserisci l'URL della pagina web che vuoi monitorare in una nuova tab.
+            </p>
+            <Input
+              type="text"
+              placeholder="https://esempio.com"
+              value={newTabUrl}
+              onChange={(e) => setNewTabUrl(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewTabDialog(false)}>
+              Annulla
+            </Button>
+            <Button onClick={handleNewTabSubmit}>
+              Aggiungi
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
