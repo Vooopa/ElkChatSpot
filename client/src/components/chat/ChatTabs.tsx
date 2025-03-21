@@ -52,28 +52,17 @@ export const ChatTabs: React.FC<ChatTabsProps> = ({
       onValueChange={onTabChange}
       className="w-full border-b"
     >
-      <div className="flex items-center justify-between px-4 pt-2">
-        <TabsList className="h-10 flex-grow overflow-x-auto scrollbar-thin">
-          {/* Tab speciale per la chat generale */}
-          <TabsTrigger 
-            value="main"
-            className={cn(
-              "flex items-center h-10 px-4 py-2 bg-white relative",
-              activeTabId === "main" ? "border-b-2 border-blue-500" : ""
-            )}
-          >
-            <MessagesSquare className="mr-2 h-4 w-4" />
-            <span>Chat Principale</span>
-          </TabsTrigger>
-          
-          {tabs.filter(tab => tab.id !== "main").map((tab) => (
+      <div className="flex items-center px-4 pt-2">
+        <TabsList className="h-10 flex-grow overflow-x-auto scrollbar-thin flex gap-1">
+          {/* Mostra tutte le tab in orizzontale, una accanto all'altra */}
+          {tabs.map((tab) => (
             <TabsTrigger
               key={tab.id}
               value={tab.id}
               className={cn(
-                "flex items-center h-10 px-4 py-2 bg-white relative",
+                "flex items-center h-10 px-4 py-2 bg-white relative border border-gray-200 rounded-t-md",
                 tab.unread ? "after:absolute after:top-2 after:right-2 after:w-2 after:h-2 after:bg-red-500 after:rounded-full" : "",
-                activeTabId === tab.id ? "border-b-2 border-blue-500" : ""
+                activeTabId === tab.id ? "bg-blue-50 border-b-2 border-blue-500" : ""
               )}
             >
               {tab.favicon ? (
@@ -107,9 +96,10 @@ export const ChatTabs: React.FC<ChatTabsProps> = ({
           variant="ghost" 
           size="sm" 
           onClick={onAddNewTab}
-          className="ml-2 flex-shrink-0"
+          className="ml-2 flex-shrink-0 bg-blue-50 hover:bg-blue-100"
         >
-          <PlusIcon className="h-4 w-4" />
+          <PlusIcon className="h-4 w-4 mr-1" />
+          <span>Nuova tab</span>
         </Button>
       </div>
       
@@ -119,10 +109,6 @@ export const ChatTabs: React.FC<ChatTabsProps> = ({
           {/* Il componente padre renderizzerà il contenuto appropriato */}
         </TabsContent>
       ))}
-      
-      <TabsContent value="main" className="mt-0 p-0">
-        {/* Il componente padre renderizzerà il contenuto della chat principale */}
-      </TabsContent>
     </Tabs>
   );
 };
