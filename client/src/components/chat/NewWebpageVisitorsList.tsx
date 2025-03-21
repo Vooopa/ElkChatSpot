@@ -66,6 +66,10 @@ const NewWebpageVisitorsList = ({
 
   const handleStartPrivateChat = (nickname: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent triggering the expand/collapse
+    console.log("🟨 CLICK sul pulsante chat con:", nickname);
+    console.log("🟨 chatHistoryUsers:", chatHistoryUsers);
+    console.log("🟨 È nella history?", chatHistoryUsers.includes(nickname));
+    
     if (nickname !== currentUser) {
       onStartPrivateChat(nickname);
     }
