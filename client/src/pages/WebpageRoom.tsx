@@ -1200,6 +1200,12 @@ const WebpageRoom = () => {
   };
   
   const handleTabClose = (tabId: string) => {
+    // Se stiamo chiudendo l'unica tab rimasta, prima mostriamo l'input URL
+    if (tabs.length <= 1) {
+      setShowUrlInput(true);
+      return;
+    }
+    
     // Rimuovi la tab dall'array delle tab
     setTabs(prev => prev.filter(tab => tab.id !== tabId));
     
