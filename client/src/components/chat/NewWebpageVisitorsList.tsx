@@ -2,7 +2,20 @@ import { useState } from "react";
 import type { WebpageVisitor } from "@shared/schema";
 import { UserStatus } from "@shared/schema";
 import { formatDistanceToNow } from "date-fns";
-import { User, Users, Clock, MessageSquare, MessageCircle } from "lucide-react";
+import { 
+  User, 
+  Users, 
+  Clock, 
+  MessageSquare, 
+  MessageCircle, 
+  MessageSquarePlus, 
+  MessagesSquare, 
+  MessagesSquare as ChatBubble, 
+  Mail, 
+  Send, 
+  PlayCircle, 
+  ArrowRightCircle 
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -166,10 +179,10 @@ const NewWebpageVisitorsList = ({
                     {chatHistoryUsers.includes(visitor.nickname) ? (
                       <button
                         type="button"
-                        className={`flex items-center justify-center px-3 py-2 rounded-full text-sm font-bold shadow-lg ${
+                        className={`flex items-center justify-center p-2 rounded-full text-white shadow-lg ${
                           (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse border-2 border-red-300'
-                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-2 border-blue-300'
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 animate-pulse border-2 border-red-300 w-10 h-10' 
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 border-2 border-blue-300 w-9 h-9'
                         }`}
                         title={
                           (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
@@ -178,18 +191,20 @@ const NewWebpageVisitorsList = ({
                         }
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        <span>Continua chat</span>
+                        {(visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages ? (
+                          <ChatBubble className="h-5 w-5" />
+                        ) : (
+                          <MessageCircle className="h-4 w-4" />
+                        )}
                       </button>
                     ) : (
                       <button
                         type="button"
-                        className="flex items-center justify-center px-2 py-1 rounded-sm text-xs font-normal bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
+                        className="flex items-center justify-center w-8 h-8 rounded-sm bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
                         title="Inizia chat"
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
-                        <MessageSquare className="h-3 w-3 mr-1" />
-                        <span>Inizia chat</span>
+                        <MessageSquarePlus className="h-4 w-4" />
                       </button>
                     )}
                     </>
