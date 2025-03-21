@@ -45,6 +45,7 @@ export interface WebpageVisitor {
   status: UserStatus;
   lastActivity: string;
   unreadMessages?: number; // Track unread message count
+  hasUnreadMessages?: boolean; // Flag per indicare se ci sono messaggi non letti (più facile da gestire)
 }
 
 export interface ChatRoom {
