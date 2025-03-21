@@ -956,9 +956,10 @@ const WebpageRoom = () => {
   const domain = getDomainFromUrl(url);
   const roomInfo = `Chatting about ${domain}`;
   
-  // Calculate if there are any unread messages (boolean instead of count)
+  // Calculate if there are any unread messages (usando sia contatore che flag booleano)
   const hasUnreadMessages = visitors.some(visitor => 
-    visitor.unreadMessages && visitor.unreadMessages > 0 && visitor.nickname !== nickname
+    ((visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages) && 
+    visitor.nickname !== nickname
   );
   
   // La simulazione è stata rimossa per evitare errori di React Hooks
@@ -1000,8 +1001,10 @@ const WebpageRoom = () => {
             {hasUnreadMessages && (
               <button 
                 onClick={() => {
-                  // Find first visitor with unread messages and open chat
-                  const visitorWithUnread = visitors.find(v => (v.unreadMessages || 0) > 0 && v.nickname !== nickname);
+                  // Find first visitor with unread messages and open chat (usando sia contatore che flag booleano)
+                  const visitorWithUnread = visitors.find(v => 
+                    (((v.unreadMessages || 0) > 0) || v.hasUnreadMessages) && v.nickname !== nickname
+                  );
                   if (visitorWithUnread) {
                     handleStartPrivateChat(visitorWithUnread.nickname);
                   }

@@ -138,8 +138,9 @@ const NewWebpageVisitorsList = ({
                         <span className="ml-2 text-xs font-normal text-gray-500">(you)</span>
                       )}
                       
-                      {/* Indicatore messaggi non letti (SENZA NUMERI) */}
-                      {visitor.nickname !== currentUser && visitor.unreadMessages && visitor.unreadMessages > 0 && (
+                      {/* Indicatore messaggi non letti (SENZA NUMERI) usando sia contatore che flag booleano */}
+                      {visitor.nickname !== currentUser && 
+                       ((visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages) && (
                         <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full animate-pulse">
                           Nuovo
                         </span>
@@ -162,14 +163,14 @@ const NewWebpageVisitorsList = ({
                       <button
                         type="button"
                         className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium ${
-                          visitor.unreadMessages && visitor.unreadMessages > 0
+                          (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
                             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md'
                             : activeChatWith === visitor.nickname
                               ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
                               : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
                         }`}
                         title={
-                          visitor.unreadMessages && visitor.unreadMessages > 0
+                          (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
                             ? 'Hai nuovi messaggi'
                             : 'Continua chat'
                         }
