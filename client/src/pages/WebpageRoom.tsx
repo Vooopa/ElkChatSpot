@@ -988,9 +988,9 @@ const WebpageRoom = () => {
               
               {/* Unread messages indicator */}
               {hasUnreadMessages && (
-                <div className="ml-3 chat-button-notification flex items-center px-2 py-1 rounded-full text-xs font-medium border-2 border-yellow-300">
-                  <span className="inline-block w-2 h-2 bg-yellow-500 rounded-full mr-1 animate-ping"></span>
-                  <span className="font-bold">
+                <div className="ml-3 chat-button-notification flex items-center px-3 py-1.5 rounded-full text-xs font-bold border-2 border-red-300 bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse shadow-md">
+                  <span className="inline-block w-2 h-2 bg-white rounded-full mr-2 animate-ping"></span>
+                  <span>
                     NUOVI MESSAGGI PRIVATI
                   </span>
                 </div>
@@ -1009,7 +1009,7 @@ const WebpageRoom = () => {
                     handleStartPrivateChat(visitorWithUnread.nickname);
                   }
                 }}
-                className="px-3 py-1 chat-button-notification border-2 border-yellow-300 font-bold text-white rounded-full text-sm shadow-lg"
+                className="px-4 py-1.5 chat-button-notification border-2 border-red-300 font-bold text-white rounded-full text-sm shadow-lg bg-gradient-to-r from-red-500 to-red-600 animate-pulse"
               >
                 CONTROLLA MESSAGGI ADESSO!
               </button>

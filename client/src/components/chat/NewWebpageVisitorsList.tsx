@@ -158,16 +158,14 @@ const NewWebpageVisitorsList = ({
                 <div className="flex items-center gap-2">
                   {visitor.nickname !== currentUser && (
                     <>
-                    {/* Bottone di chat completamente nuovo */}
+                    {/* Due pulsanti completamente diversi: uno prima della chat e uno dopo */}
                     {chatHistoryUsers.includes(visitor.nickname) ? (
                       <button
                         type="button"
-                        className={`flex items-center justify-center px-3 py-1 rounded text-sm font-medium ${
+                        className={`flex items-center justify-center px-3 py-1.5 rounded-full text-sm font-bold shadow-lg ${
                           (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
-                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-md'
-                            : activeChatWith === visitor.nickname
-                              ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
-                              : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md'
+                            ? 'bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse border-2 border-red-300'
+                            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-2 border-blue-300'
                         }`}
                         title={
                           (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
@@ -176,18 +174,18 @@ const NewWebpageVisitorsList = ({
                         }
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
-                        <MessageCircle className="h-3 w-3 mr-1" />
+                        <MessageCircle className="h-4 w-4 mr-1" />
                         <span>Chat</span>
                       </button>
                     ) : (
                       <button
                         type="button"
-                        className="flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        className="flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300"
                         title="Inizia chat"
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
                         <MessageSquare className="h-3 w-3 mr-1" />
-                        <span>Chat</span>
+                        <span>Inizia chat</span>
                       </button>
                     )}
                     </>
