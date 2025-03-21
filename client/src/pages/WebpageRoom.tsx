@@ -15,7 +15,7 @@ import Header from "@/components/chat/Header";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import CustomNotification from "@/components/ui/custom-notification";
+import { CustomNotification } from "@/components/ui/custom-notification";
 
 // Migliorata la funzione di notifica sonora
 const playNotificationSound = () => {
@@ -1057,6 +1057,11 @@ const WebpageRoom = () => {
             </a>
           </div>
         </div>
+      </div>
+
+      {/* Anteprima della pagina web */}
+      <div className="px-4 py-2">
+        <WebpagePreview url={url} />
       </div>
 
       <div className="flex-1 flex overflow-hidden">
