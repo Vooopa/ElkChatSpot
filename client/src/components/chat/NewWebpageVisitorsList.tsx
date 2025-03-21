@@ -162,7 +162,7 @@ const NewWebpageVisitorsList = ({
                     {chatHistoryUsers.includes(visitor.nickname) ? (
                       <button
                         type="button"
-                        className={`flex items-center justify-center px-3 py-1.5 rounded-full text-sm font-bold shadow-lg ${
+                        className={`flex items-center justify-center px-3 py-2 rounded-full text-sm font-bold shadow-lg ${
                           (visitor.unreadMessages && visitor.unreadMessages > 0) || visitor.hasUnreadMessages
                             ? 'bg-gradient-to-r from-red-500 to-red-600 text-white animate-pulse border-2 border-red-300'
                             : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-2 border-blue-300'
@@ -175,12 +175,12 @@ const NewWebpageVisitorsList = ({
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
                         <MessageCircle className="h-4 w-4 mr-1" />
-                        <span>Chat</span>
+                        <span>Continua chat</span>
                       </button>
                     ) : (
                       <button
                         type="button"
-                        className="flex items-center justify-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 border border-gray-300"
+                        className="flex items-center justify-center px-2 py-1 rounded-sm text-xs font-normal bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
                         title="Inizia chat"
                         onClick={(e) => handleStartPrivateChat(visitor.nickname, e)}
                       >
