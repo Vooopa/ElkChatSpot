@@ -823,59 +823,72 @@ const WebpageRoom = () => {
     console.log("💫 Chat message received:", message);
     logCurrentState('onChatMessage');
     
-    // Non facciamo nessun controllo, aggiungiamo e basta
-    // Questo è il sistema più semplice possibile
-    console.log(`💫 Tentativo di aggiungere messaggio alla stanza ${roomId}`);
-    console.log(`💫 Prima dell'aggiunta: ${messages.length} messaggi`);
+    // Troviamo a quale tab questo messaggio appartiene in base al roomId
+    const targetRoomId = message.roomId;
     
-    // Aggiungi ogni messaggio, senza filtri, alla lista principale
-    setMessages(prev => {
-      const newMessages = [...prev, message];
-      console.log(`💫 Dopo l'aggiunta: dovremmo avere ${newMessages.length} messaggi`);
-      return newMessages;
-    });
+    // Cerca una tab che corrisponde a questo roomId
+    // Nota: potremmo avere più tab per lo stesso URL, ma ognuna dovrebbe avere un roomId unico
+    const targetTabId = Object.keys(tabData).find(id => 
+      tabData[id].roomId === targetRoomId
+    );
     
-    // Aggiorna anche i messaggi nella tab attiva
-    setTabData(prev => {
-      // Se il messaggio appartiene a una stanza che fa parte di una delle nostre tab
-      const targetTabId = activeTabId;
-      
-      if (targetTabId && prev[targetTabId]) {
-        // Se questa è la tab attiva, aggiorna i messaggi
-        return {
-          ...prev,
-          [targetTabId]: {
-            ...prev[targetTabId],
-            messages: [...prev[targetTabId].messages, message]
-          }
-        };
-      }
-      
-      // Se non trova una tab corrispondente, non fare modifiche
-      return prev;
-    });
+    console.log(`💫 Messaggio ricevuto per room ${targetRoomId}, tab identificata: ${targetTabId || 'nessuna'}`);
     
-    // Se il messaggio arriva per una tab che non è quella attiva, marca come non letto
-    if (message.roomId !== roomId) {
-      // Trova la tab che corrisponde a questo roomId
-      const tabId = Object.keys(tabData).find(id => tabData[id].roomId === message.roomId);
+    // Se abbiamo trovato una tab corrispondente, aggiorniamo i suoi messaggi
+    if (targetTabId) {
+      // Aggiorna i dati della tab target
+      setTabData(prev => ({
+        ...prev,
+        [targetTabId]: {
+          ...prev[targetTabId],
+          messages: [...prev[targetTabId].messages, message],
+          // Imposta flag messaggi non letti solo se non è la tab attiva
+          hasUnreadMessages: targetTabId !== activeTabId ? true : prev[targetTabId].hasUnreadMessages
+        }
+      }));
       
-      if (tabId && tabId !== activeTabId) {
-        // Imposta il flag di messaggi non letti per questa tab
-        setTabData(prev => ({
-          ...prev,
-          [tabId]: {
-            ...prev[tabId],
-            hasUnreadMessages: true
-          }
-        }));
-        
-        // Aggiorna anche l'oggetto tab per mostrare l'indicatore visivo
+      // Aggiorna l'indicatore visivo nella tab solo se non è quella attiva
+      if (targetTabId !== activeTabId) {
         setTabs(prev => prev.map(tab => 
-          tab.id === tabId 
+          tab.id === targetTabId 
             ? {...tab, unread: true} 
             : tab
         ));
+        
+        // Suona una notifica quando arriva un messaggio in una tab che non è quella attiva
+        playNotificationSound();
+        
+        // Mostra anche un toast per informare l'utente
+        const tabInfo = tabs.find(tab => tab.id === targetTabId);
+        if (tabInfo) {
+          toast({
+            title: `Nuovo messaggio in ${tabInfo.title || getDomainFromUrl(tabInfo.url)}`,
+            description: `Da: ${message.nickname}, clicca per vedere`,
+            duration: 5000,
+            variant: "default",
+            action: (
+              <div 
+                className="cursor-pointer bg-blue-500 text-white px-3 py-1 rounded font-medium hover:bg-blue-600 transition-colors"
+                onClick={() => handleTabChange(targetTabId)}
+              >
+                Vai alla tab
+              </div>
+            )
+          });
+        }
+      }
+      
+      // Se è la tab attiva, aggiorna anche la visualizzazione principale
+      if (targetTabId === activeTabId) {
+        setMessages(prev => [...prev, message]);
+      }
+    } else {
+      // Se non troviamo una tab, potrebbe essere un messaggio per una stanza che non stiamo monitorando
+      console.log(`💫 Messaggio ricevuto per una stanza non monitorata: ${targetRoomId}`);
+      
+      // Se è per la stanza attuale, aggiungiamolo alla lista principale
+      if (targetRoomId === roomId) {
+        setMessages(prev => [...prev, message]);
       }
     }
   };
@@ -1093,20 +1106,39 @@ const WebpageRoom = () => {
   }, [roomId, activeTabId]);
   
   // Effect to update tabData when messages, visitors, or URL changes
+  // Solo aggiorniamo i dati della tab attiva
   useEffect(() => {
     if (activeTabId && tabData[activeTabId]) {
       console.log(`Updating tab ${activeTabId} data with latest messages and visitors`);
-      setTabData(prev => ({
-        ...prev,
-        [activeTabId]: {
-          ...prev[activeTabId],
-          messages: messages,
-          visitors: visitors,
-          url: url
+      setTabData(prev => {
+        // Prima verifica se il roomId è lo stesso
+        // Se è cambiato il roomId, resettiamo i messaggi e visitatori per evitare mescolamenti
+        if (prev[activeTabId].roomId !== roomId) {
+          return {
+            ...prev,
+            [activeTabId]: {
+              ...prev[activeTabId],
+              messages: [], // Reset messaggi per nuova stanza
+              visitors: [], // Reset visitatori per nuova stanza
+              roomId: roomId,
+              url: url
+            }
+          };
         }
-      }));
+        
+        // Se il roomId è lo stesso, aggiorna normalmente
+        return {
+          ...prev,
+          [activeTabId]: {
+            ...prev[activeTabId],
+            messages: messages,
+            visitors: visitors,
+            url: url
+          }
+        };
+      });
     }
-  }, [messages, visitors, url, activeTabId]);
+  }, [messages, visitors, url, roomId, activeTabId]);
   
   // Format domain name for display
   const getDomainFromUrl = (urlString: string) => {
@@ -1120,10 +1152,18 @@ const WebpageRoom = () => {
 
   // Funzioni per il sistema di tab
   const handleTabChange = (tabId: string) => {
+    // Prima di cambiare tab, considera se è necessario lasciare la stanza corrente
+    if (socket && isConnected && roomId && activeTabId && activeTabId !== tabId) {
+      console.log(`Leaving room ${roomId} before switching tabs`);
+      // Opzionale: lasciare esplicitamente la stanza corrente
+      // socket.emit("webpage:leave", { roomId });
+    }
+    
     setActiveTabId(tabId);
     
     // Caricare i dati della tab selezionata
     if (tabData[tabId]) {
+      // Imposta i dati della tab
       setMessages(tabData[tabId].messages);
       setVisitors(tabData[tabId].visitors);
       setRoomId(tabData[tabId].roomId);
@@ -1143,7 +1183,7 @@ const WebpageRoom = () => {
         setLocation(`/webpage/${encodeURIComponent(tabData[tabId].url)}`);
       }
       
-      // Join the room for this tab if not already joined
+      // Join the room for this tab
       if (socket && isConnected && nickname && tabData[tabId].url) {
         console.log(`Joining room for tab ${tabId} with URL: ${tabData[tabId].url}`);
         socket.emit("webpage:join", {
