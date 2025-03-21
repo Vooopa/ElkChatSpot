@@ -633,9 +633,20 @@ const WebpageRoom = () => {
     // Aggiungi il destinatario alla lista degli utenti con cui è stata avviata una chat
     setChatHistoryUsers(prev => {
       if (!prev.includes(recipient)) {
-        console.log(`Aggiunto ${recipient} alla cronologia chat`);
-        return [...prev, recipient];
+        console.log(`🟥 Aggiunto ${recipient} alla cronologia chat`);
+        console.log("🟥 chatHistoryUsers PRIMA:", prev);
+        const newHistory = [...prev, recipient];
+        console.log("🟥 chatHistoryUsers DOPO:", newHistory);
+        
+        // Forza un re-render
+        setTimeout(() => {
+          console.log("🟥 VERIFICA chatHistoryUsers dopo timeout:", chatHistoryUsers);
+          console.log("🟥 Include", recipient, "?", chatHistoryUsers.includes(recipient));
+        }, 500);
+        
+        return newHistory;
       }
+      console.log(`🟥 ${recipient} già presente nella cronologia chat`);
       return prev;
     });
     
@@ -784,9 +795,20 @@ const WebpageRoom = () => {
       // Aggiungi l'utente alla lista di chat attive se non è già presente
       setChatHistoryUsers(prev => {
         if (!prev.includes(fromUser)) {
-          console.log(`Aggiunto ${fromUser} alla cronologia chat (mittente)`);
-          return [...prev, fromUser];
+          console.log(`🔴 Aggiunto ${fromUser} alla cronologia chat (mittente)`);
+          console.log(`🔴 chatHistoryUsers PRIMA:`, prev);
+          const newHistory = [...prev, fromUser];
+          console.log(`🔴 chatHistoryUsers DOPO:`, newHistory);
+          
+          // Aggiorniamo manualmente il componente qui
+          setTimeout(() => {
+            console.log(`🔴 FORCE chatHistoryUsers dopo timeout:`, chatHistoryUsers);
+            console.log(`🔴 Include ${fromUser}?`, chatHistoryUsers.includes(fromUser));
+          }, 500);
+          
+          return newHistory;
         }
+        console.log(`🔴 ${fromUser} già nella cronologia chat`);
         return prev;
       });
       
@@ -882,6 +904,16 @@ const WebpageRoom = () => {
         }
         return visitor;
       });
+    });
+    
+    // IMPORTANTE: Aggiungiamo l'utente alla cronologia chat quando la chat viene aperta
+    // Questo risolve il problema del pulsante che non cambia aspetto
+    setChatHistoryUsers(prev => {
+      if (!prev.includes(recipientName)) {
+        console.log(`🟣 Forcing add ${recipientName} to chat history when opening chat`);
+        return [...prev, recipientName];
+      }
+      return prev;
     });
     
     setPrivateChatRecipient(recipientName);
