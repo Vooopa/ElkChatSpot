@@ -809,15 +809,15 @@ const WebpageRoom = () => {
         // Play notification sound
         playNotificationSound();
         
-        // Update the visitor's unread count
+        // Update the visitor to mark they have unread messages (using boolean flag instead of counter)
         setVisitors(prevVisitors => {
           return prevVisitors.map(visitor => {
             if (visitor.nickname?.toLowerCase() === fromUser.toLowerCase()) {
-              const newCount = (visitor.unreadMessages || 0) + 1;
-              console.log(`🔔 Incrementato contatore per ${visitor.nickname}, ha nuovi messaggi`);
+              console.log(`🔔 Ricevuto messaggio da ${visitor.nickname}, impostato flag 'hasUnreadMessages'`);
               return {
                 ...visitor,
-                unreadMessages: newCount
+                unreadMessages: 1, // Impostiamo a 1 così la condizione unreadMessages > 0 sarà vera
+                hasUnreadMessages: true // Nuovo flag booleano più facile da gestire
               };
             }
             return visitor;
@@ -870,13 +870,14 @@ const WebpageRoom = () => {
 
   // Handle starting a private chat
   const handleStartPrivateChat = (recipientName: string) => {
-    // Reset unread message count for this recipient
+    // Reset unread message flags for this recipient
     setVisitors(prevVisitors => {
       return prevVisitors.map(visitor => {
         if (visitor.nickname === recipientName) {
           return {
             ...visitor,
-            unreadMessages: 0 // Reset unread count
+            unreadMessages: 0, // Reset unread count
+            hasUnreadMessages: false // Reset unread flag
           };
         }
         return visitor;
@@ -895,8 +896,9 @@ const WebpageRoom = () => {
     
     // Only preserve unread messages if dialogue is closed without viewing them
     if (currentRecipientVisitor) {
-      // Show a reminder toast if there are unread messages
-      if (currentRecipientVisitor.unreadMessages && currentRecipientVisitor.unreadMessages > 0) {
+      // Show a reminder toast if there are unread messages (usando sia il contatore che il flag)
+      if ((currentRecipientVisitor.unreadMessages && currentRecipientVisitor.unreadMessages > 0) || 
+          currentRecipientVisitor.hasUnreadMessages) {
         toast({
           title: `💬 Messaggi non letti`,
           description: `Hai messaggi non letti da ${privateChatRecipient}`,
