@@ -560,8 +560,31 @@ const WebpageRoom = () => {
     };
   }, [socket]);
 
+  // Gestione degli URL delle pagine web da monitorare
   const handleUrlSubmit = (submittedUrl: string) => {
+    // Quando viene inviato un nuovo URL principale, lo imposta come URL principale
+    // e imposta anche l'URL della tab principale
     setUrl(submittedUrl);
+    
+    // Aggiorna anche il tab principale con il nuovo URL
+    const mainTab = tabs.find(tab => tab.id === "main");
+    if (mainTab) {
+      setTabs(prev => prev.map(tab => 
+        tab.id === "main" 
+          ? {...tab, url: submittedUrl, title: `Chat Principale - ${getDomainFromUrl(submittedUrl)}`} 
+          : tab
+      ));
+      
+      // Aggiorna i dati della tab principale
+      setTabData(prev => ({
+        ...prev,
+        main: {
+          ...prev.main,
+          url: submittedUrl
+        }
+      }));
+    }
+    
     setShowUrlInput(false);
     setShowNicknameModal(true);
   };
@@ -577,7 +600,10 @@ const WebpageRoom = () => {
     setNicknameError(undefined);
     setShowNicknameModal(false);
     
-    // Join webpage-specific room
+    // Attiva la tab principale
+    setActiveTabId("main");
+    
+    // Join webpage-specific room for current URL
     console.log(`Joining webpage with URL: ${url}, nickname: ${newNickname}`);
     socket.emit("webpage:join", {
       url: url, // Send the original URL, server will normalize it
@@ -793,12 +819,56 @@ const WebpageRoom = () => {
     console.log(`💫 Tentativo di aggiungere messaggio alla stanza ${roomId}`);
     console.log(`💫 Prima dell'aggiunta: ${messages.length} messaggi`);
     
-    // Aggiungi ogni messaggio, senza filtri
+    // Aggiungi ogni messaggio, senza filtri, alla lista principale
     setMessages(prev => {
       const newMessages = [...prev, message];
       console.log(`💫 Dopo l'aggiunta: dovremmo avere ${newMessages.length} messaggi`);
       return newMessages;
     });
+    
+    // Aggiorna anche i messaggi nella tab attiva
+    setTabData(prev => {
+      // Se il messaggio appartiene a una stanza che fa parte di una delle nostre tab
+      const targetTabId = activeTabId;
+      
+      if (targetTabId && prev[targetTabId]) {
+        // Se questa è la tab attiva, aggiorna i messaggi
+        return {
+          ...prev,
+          [targetTabId]: {
+            ...prev[targetTabId],
+            messages: [...prev[targetTabId].messages, message]
+          }
+        };
+      }
+      
+      // Se non trova una tab corrispondente, non fare modifiche
+      return prev;
+    });
+    
+    // Se il messaggio arriva per una tab che non è quella attiva, marca come non letto
+    if (message.roomId !== roomId) {
+      // Trova la tab che corrisponde a questo roomId
+      const tabId = Object.keys(tabData).find(id => tabData[id].roomId === message.roomId);
+      
+      if (tabId && tabId !== activeTabId) {
+        // Imposta il flag di messaggi non letti per questa tab
+        setTabData(prev => ({
+          ...prev,
+          [tabId]: {
+            ...prev[tabId],
+            hasUnreadMessages: true
+          }
+        }));
+        
+        // Aggiorna anche l'oggetto tab per mostrare l'indicatore visivo
+        setTabs(prev => prev.map(tab => 
+          tab.id === tabId 
+            ? {...tab, unread: true} 
+            : tab
+        ));
+      }
+    }
   };
   
   const onPrivateMessage = (message: Message) => {
