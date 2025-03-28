@@ -10,7 +10,11 @@ import EmbedCode from "@/pages/EmbedCode";
 import Home from "@/pages/Home";
 import SimpleChatDemo from "@/pages/SimpleChatDemo";
 
+console.log("Initializing App component...from App.tsx");
+
 function Router() {
+  console.log("Rendering Router component...from App.tsx");
+
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -28,6 +32,8 @@ function Router() {
 }
 
 function App() {
+  console.log("Rendering App component...from App.tsx");
+
   return (
     <QueryClientProvider client={queryClient}>
       <Router />

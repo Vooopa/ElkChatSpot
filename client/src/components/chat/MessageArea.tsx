@@ -8,6 +8,8 @@ interface MessageAreaProps {
 }
 
 const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
+  console.log("💬 Messaggi ricevuti in MessageArea:", messages);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
@@ -49,6 +51,12 @@ const MessageArea = ({ messages, currentUser }: MessageAreaProps) => {
 
   // Log what messages we have to help debugging
   console.log("💬 MessageArea rendering with messages:", messages);
+console.log("💬 Prop 'messages' passato a MessageArea:", messages);
+console.log("Numero totale di messaggi:", messages.length);
+messages.forEach((msg, index) => {
+  console.log(`Messaggio ${index + 1}:`, msg);
+});
+
 
   return (
     <div className="message-area flex-1 overflow-y-auto py-4 space-y-4">

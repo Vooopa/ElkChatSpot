@@ -79,7 +79,7 @@ export const ChatTabs: React.FC<ChatTabsProps> = ({
                 <GlobeIcon className="mr-2 h-4 w-4" />
               )}
               <span className="truncate max-w-[100px]">{extractDomain(tab.url)}</span>
-              <button
+              <span
                 onClick={(e) => {
                   e.stopPropagation();
                   onTabClose(tab.id);
@@ -87,7 +87,7 @@ export const ChatTabs: React.FC<ChatTabsProps> = ({
                 className="ml-2 text-gray-500 hover:text-gray-800"
               >
                 <XIcon className="h-3 w-3" />
-              </button>
+              </span>
             </TabsTrigger>
           ))}
         </TabsList>

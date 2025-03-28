@@ -278,19 +278,33 @@ ${entryCode}
         console.log("❌ Invalid message format", message);
         return;
       }
+      // Add required fields to the message
+      const completeMessage: Message = {
+        ...message,
+        type: message.type || MessageType.USER_MESSAGE,
+        timestamp: new Date().toISOString(),
+        senderSocketId: socket.id,
+        isBroadcast: false
+      };
+
+	    // Log and broadcast the message to everyone in the room
+    console.log(`✅ Broadcasting message from ${message.nickname} to room ${message.roomId}`);
+
+    //funzione aggiuntiva di controllo
+    io.to(message.roomId).emit("chat:message", completeMessage);
+
+    io.to(message.roomId).emit("chat:message", {
+        ...message,
+        timestamp: new Date().toISOString(),
+        senderSocketId: socket.id
+    });
       
       // Update activity timestamp if this is a webpage visitor
       if (isWebpageVisitor && currentRoom) {
         storage.updateWebpageVisitorActivity(currentRoom, socket.id);
       }
       
-      // Add required fields to the message
-      const completeMessage: Message = {
-        ...message,
-        type: message.type || MessageType.USER_MESSAGE,
-        timestamp: new Date().toISOString(),
-        senderSocketId: socket.id
-      };
+
       
       // Is this a private message request?
       if (message.type === MessageType.PRIVATE_MESSAGE && message.recipient) {
@@ -298,7 +312,16 @@ ${entryCode}
         // Convert to regular message - private messages should use the chat:private event
         completeMessage.type = MessageType.USER_MESSAGE;
       }
-      
+console.log("📦 Messaggio ricevuto:", message);
+const roomId = message.roomId;
+if (!roomId) {
+  console.error("❌ roomId non definito nel messaggio:", message);
+  return; // Evita errori continuando senza un roomId
+}
+
+	const clientsInRoom = io.sockets.adapter.rooms.get(roomId) || new Set();
+console.log(`🔍 Client connessi nella stanza '${roomId}':`, Array.from(clientsInRoom));      
+
       // SUPER SIMPLE: Regular message - broadcast to everyone in the room
       console.log(`✅ Broadcasting message from ${completeMessage.nickname} to room ${message.roomId}`);
       io.to(message.roomId).emit("chat:message", completeMessage);
