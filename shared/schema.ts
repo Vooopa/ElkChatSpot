@@ -36,6 +36,7 @@ export interface Message {
   recipient?: string; // For private messages
   senderSocketId?: string; // Sender's socket ID
   isNotification?: boolean; // Speciale flag per forzare la visibilità della notifica
+  isBroadcast?: boolean; //mod.luca
 }
 
 export interface WebpageVisitor {
