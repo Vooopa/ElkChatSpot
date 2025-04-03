@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { Send } from "lucide-react";
 
 interface MessageInputProps {
@@ -10,7 +10,16 @@ interface MessageInputProps {
 const MessageInput = ({ onSendMessage, onTypingStart, onTypingStop }: MessageInputProps) => {
   const [message, setMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+  // Pulizia del timeout quando il componente viene smontato
+  useEffect(() => {
+    return () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, [typingTimeout]);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -20,16 +29,16 @@ const MessageInput = ({ onSendMessage, onTypingStart, onTypingStop }: MessageInp
         onTypingStop();
         setIsTyping(false);
       }
-      
+
       onSendMessage(message);
       setMessage("");
     }
   };
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const text = e.target.value;
     setMessage(text);
-    
+
     // Gestione stato "sta scrivendo"
     if (text.trim() && !isTyping && onTypingStart) {
       // L'utente ha iniziato a scrivere
@@ -40,12 +49,12 @@ const MessageInput = ({ onSendMessage, onTypingStart, onTypingStop }: MessageInp
       setIsTyping(false);
       onTypingStop();
     }
-    
+
     // Reset del timeout esistente
     if (typingTimeout) {
       clearTimeout(typingTimeout);
     }
-    
+
     // Imposta un nuovo timeout per determinare quando l'utente ha smesso di scrivere
     const newTimeout = setTimeout(() => {
       if (isTyping && onTypingStop) {
@@ -53,31 +62,32 @@ const MessageInput = ({ onSendMessage, onTypingStart, onTypingStop }: MessageInp
         onTypingStop();
       }
     }, 2000); // 2 secondi dopo l'ultima digitazione
-    
+
     setTypingTimeout(newTimeout);
   };
 
   return (
-    <div className="bg-white border-t border-gray-200 py-3 px-4">
-      <div className="max-w-6xl mx-auto">
-        <form className="flex items-center" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={message}
-            onChange={handleInputChange}
-            className="flex-1 rounded-l-lg border border-gray-300 py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="Type your message..."
-          />
-          <button
-            type="submit"
-            className="bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-r-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-          >
-            <span className="hidden sm:inline mr-1">Send</span>
-            <Send className="h-5 w-5 inline-block" />
-          </button>
-        </form>
+      <div className="bg-white border-t border-gray-200 py-3 px-4">
+        <div className="max-w-6xl mx-auto">
+          <form className="flex items-center" onSubmit={handleSubmit}>
+            <input
+                type="text"
+                value={message}
+                onChange={handleInputChange}
+                className="flex-1 rounded-l-lg border border-gray-300 py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                placeholder="Type your message..."
+            />
+            <button
+                type="submit"
+                className="bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-r-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                aria-label="Send message"
+            >
+              <span className="hidden sm:inline mr-1">Send</span>
+              <Send className="h-5 w-5 inline-block" />
+            </button>
+          </form>
+        </div>
       </div>
-    </div>
   );
 };
 

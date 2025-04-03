@@ -11,17 +11,49 @@ import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
+// Livelli di logging supportati
+type LogLevel = "info" | "warn" | "error" | "debug";
 
-  console.log(`${formattedTime} [${source}] ${message}`);
+/**
+ * Funzione di logging migliorata con supporto per diversi livelli
+ * e formattazione consistente
+ */
+export function log(
+    message: string | Error,
+    source = "express",
+    level: LogLevel = "info"
+) {
+  try {
+    // Gestione degli oggetti Error
+    const formattedMessage = message instanceof Error ? message.message : message;
+
+    // Formattazione dell'orario con supporto localizzazione
+    const timestamp = new Date().toISOString();
+
+    // Diversi metodi di console in base al livello
+    const logMethod = {
+      info: console.log,
+      warn: console.warn,
+      error: console.error,
+      debug: console.debug
+    }[level] || console.log;
+
+    // Output formattato
+    logMethod(`${timestamp} [${source}] [${level.toUpperCase()}] ${formattedMessage}`);
+
+    // Stack trace per errori quando necessario
+    if (level === "error" && message instanceof Error && message.stack) {
+      console.error(message.stack);
+    }
+  } catch (err) {
+    // Failsafe per errori nella funzione di logging stessa
+    console.error("Errore nel sistema di logging:", err);
+  }
 }
 
+/**
+ * Configura Vite in modalità sviluppo
+ */
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
@@ -29,59 +61,86 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: [],
   };
 
-  const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
+  try {
+    const vite = await createViteServer({
+      ...viteConfig,
+      configFile: false,
+      customLogger: {
+        ...viteLogger,
+        error: (msg, options) => {
+          viteLogger.error(msg, options);
+          log(`Errore critico Vite: ${msg}`, "vite", "error");
+          process.exit(1);
+        },
       },
-    },
-    server: serverOptions,
-    appType: "custom",
-  });
+      server: serverOptions,
+      appType: "custom",
+    });
 
-  app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
+    app.use(vite.middlewares);
 
-    try {
-      const clientTemplate = path.resolve(
-        __dirname,
-        "..",
-        "client",
-        "index.html",
-      );
+    app.use("*", async (req, res, next) => {
+      const url = req.originalUrl;
 
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
-      );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
-    } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
-      next(e);
-    }
-  });
+      try {
+        const clientTemplate = path.resolve(
+            __dirname,
+            "..",
+            "client",
+            "index.html",
+        );
+
+        if (!fs.existsSync(clientTemplate)) {
+          throw new Error(`Template non trovato: ${clientTemplate}`);
+        }
+
+        let template = await fs.promises.readFile(clientTemplate, "utf-8");
+        // Aggiunta di un parametro di versione per evitare il caching
+        template = template.replace(
+            `src="/src/main.tsx"`,
+            `src="/src/main.tsx?v=${nanoid()}"`,
+        );
+
+        const page = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ "Content-Type": "text/html" }).end(page);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        log(e as Error, "vite", "error");
+        next(e);
+      }
+    });
+
+    log("Vite configurato in modalità sviluppo", "vite", "info");
+  } catch (error) {
+    log(error as Error, "vite", "error");
+    throw error;
+  }
 }
 
+/**
+ * Serve contenuti statici in modalità produzione
+ */
 export function serveStatic(app: Express) {
   const distPath = path.resolve(__dirname, "public");
 
   if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+    const error = new Error(
+        `Directory di build non trovata: ${distPath}, assicurati di compilare il client prima`
     );
+    log(error, "static", "error");
+    throw error;
   }
 
-  app.use(express.static(distPath));
+  // Serve file statici
+  app.use(express.static(distPath, {
+    maxAge: '1d', // Cache per un giorno
+    etag: true,
+  }));
 
-  // fall through to index.html if the file doesn't exist
+  // Fallback a index.html per SPA routing
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
+
+  log("Server configurato per servire contenuti statici dalla cartella: " + distPath, "static", "info");
 }
