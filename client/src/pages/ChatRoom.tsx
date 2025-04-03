@@ -1,4 +1,4 @@
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { io, Socket } from "socket.io-client";
 import { Message, MessageType } from "@shared/schema";
@@ -33,172 +33,197 @@ const ChatRoom = () => {
   const path = location.startsWith("/chat/") ? location.substring(6) : location.substring(1);
   const roomId = path || "lobby";
 
+  // Riferimenti per evitare problemi con le closure
+  const messagesRef = useRef(messages);
+  const nicknameRef = useRef(nickname);
+
+  // Aggiorna i riferimenti quando i valori cambiano
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    nicknameRef.current = nickname;
+  }, [nickname]);
+
   console.log(`Parsed room ID: ${roomId} from chatroom.tsx`);
+
+  // Funzione helper per verificare l'appartenenza alla stanza corrente
+  const isMessageForThisRoom = useCallback((message: Message) =>
+      message.roomId === roomId, [roomId]);
+
+  // Funzione helper per gestire messaggi con logica uniforme
+  const processMessage = useCallback((
+      message: Message,
+      isDuplicateCheck: (m: Message, currentMessages: Message[]) => boolean,
+      uniqueConditionCheck: (m: Message) => boolean
+  ) => {
+    // Esci subito se il messaggio non è per questa stanza
+    if (!isMessageForThisRoom(message)) return false;
+
+    const currentMessages = messagesRef.current;
+    const isDuplicate = isDuplicateCheck(message, currentMessages);
+    const { isBroadcast } = message;
+
+    // Logica di aggiornamento uniforme seguendo il comportamento originale
+    if (!isDuplicate || !isBroadcast) {
+      if (!isBroadcast && isDuplicate) {
+        // Aggiorna il messaggio esistente
+        setMessages(prev => prev.map(m => uniqueConditionCheck(m) ? message : m));
+      } else if (!isDuplicate) {
+        // Aggiungi nuovo messaggio
+        setMessages(prev => [...prev, message]);
+      }
+      return true;
+    }
+    return false;
+  }, [isMessageForThisRoom]);
 
   // Initialize the socket connection
   useEffect(() => {
-    console.log("useEffect hook called: Initializing socket connection...from chatroom.tsx");
+    console.log("useEffect hook called: Initializing socket connection...");
 
-    // Create a new socket with connection options
-    const newSocket = io(window.location.origin, {
+    // Configurazione socket estratta in costante
+    const SOCKET_CONFIG = {
       path: "/api/socket.io",
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionAttempts: 5
-    });
+    };
 
-    console.log("Socket created: from chatroom.tsx", newSocket);
+    const newSocket = io(window.location.origin, SOCKET_CONFIG);
+    console.log("Socket created:", newSocket);
 
-    // Set up event listeners for connection status
+    // Eventi di connessione
     newSocket.on("connect", () => {
-      console.log("Socket connected with ID: from chatroom.tsx", newSocket.id);
+      console.log("Socket connected with ID:", newSocket.id);
       setIsConnected(true);
       setRoomInfo(`${window.location.host}/chat/${roomId}`);
     });
 
     newSocket.on("disconnect", () => {
-      console.log("Socket disconnected from chatroom.tsx");
+      console.log("Socket disconnected");
       setIsConnected(false);
+      setHasJoinedRoom(false);
     });
 
-    // Room events
+    // Eventi della stanza
     newSocket.on("room:join", (data: { count: number }) => {
-      console.log(`Joined room with ${data.count} users from chatroom.tsx`);
+      console.log(`Joined room with ${data.count} users`);
       setOnlineCount(data.count);
       setHasJoinedRoom(true);
 
+      const currentNickname = nicknameRef.current;
       toast({
         title: "Joined Successfully",
-        description: `You've joined the chat room as ${nickname}`,
+        description: `You've joined the chat room as ${currentNickname}`,
         variant: "default"
       });
     });
 
     newSocket.on("user:count", (count: number) => {
-      console.log(`User count updated: ${count} from chatroom.tsx`);
+      console.log(`User count updated: ${count}`);
       setOnlineCount(count);
     });
 
-    // Message events
+    // Eventi messaggi chat normali
     newSocket.on("chat:message", (message: Message) => {
-      console.log(`Chat message received: from chatroom.tsx`, message);
-      const isBroadcast = message.isBroadcast;
+      console.log("Chat message received:", message);
 
-      if (message.roomId === roomId) {
-        const isDuplicate = messages.some(
-          m => m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.text === message.text
-        );
-
-        if (!isDuplicate || !isBroadcast) {
-          if (!isBroadcast && isDuplicate) {
-            setMessages(prev => prev.map(m =>
-              (m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.text === message.text) ? message : m
-            ));
-          } else if (!isDuplicate) {
-            setMessages((prev) => [...prev, message]);
-          }
-        }
-      }
+      processMessage(
+          message,
+          // Controllo duplicati
+          (m, currentMessages) => currentMessages.some(
+              existingMsg => existingMsg.timestamp === m.timestamp &&
+                  existingMsg.nickname === m.nickname &&
+                  existingMsg.text === m.text
+          ),
+          // Condizione di unicità
+          existingMsg => existingMsg.timestamp === message.timestamp &&
+              existingMsg.nickname === message.nickname &&
+              existingMsg.text === message.text
+      );
     });
 
+    // Eventi messaggi privati
     newSocket.on("chat:private", (message: Message) => {
-      console.log(`Private message received: from chatroom.tsx`, message);
-      const isBroadcast = message.isBroadcast;
+      console.log("Private message received:", message);
+      const currentNickname = nicknameRef.current;
 
-      if (message.roomId === roomId && (message.nickname === nickname || message.recipient === nickname)) {
-        const isDuplicate = messages.some(
-          m => m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.text === message.text &&
-               m.recipient === message.recipient &&
-               m.type === MessageType.PRIVATE_MESSAGE
+      if (isMessageForThisRoom(message) &&
+          (message.nickname === currentNickname || message.recipient === currentNickname)) {
+
+        const wasProcessed = processMessage(
+            message,
+            // Controllo duplicati per messaggi privati
+            (m, currentMessages) => currentMessages.some(
+                existingMsg => existingMsg.timestamp === m.timestamp &&
+                    existingMsg.nickname === m.nickname &&
+                    existingMsg.text === m.text &&
+                    existingMsg.recipient === m.recipient &&
+                    existingMsg.type === MessageType.PRIVATE_MESSAGE
+            ),
+            // Condizione di unicità per messaggi privati
+            existingMsg => existingMsg.timestamp === message.timestamp &&
+                existingMsg.nickname === message.nickname &&
+                existingMsg.text === message.text &&
+                existingMsg.recipient === message.recipient &&
+                existingMsg.type === MessageType.PRIVATE_MESSAGE
         );
 
-        if (!isDuplicate || !isBroadcast) {
-          if (!isBroadcast && isDuplicate) {
-            setMessages(prev => prev.map(m =>
-              (m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.text === message.text &&
-               m.recipient === message.recipient &&
-               m.type === MessageType.PRIVATE_MESSAGE) ? message : m
-            ));
-          } else if (!isDuplicate) {
-            setMessages((prev) => [...prev, message]);
-          }
-
-          if (message.nickname !== nickname && !isBroadcast) {
-            toast({
-              title: `Private message from ${message.nickname}`,
-              description: message.text,
-              variant: "default"
-            });
-          }
+        // Notifica per messaggi privati ricevuti (non inviati da me)
+        if (wasProcessed && message.nickname !== currentNickname && !message.isBroadcast) {
+          toast({
+            title: `Private message from ${message.nickname}`,
+            description: message.text,
+            variant: "default"
+          });
         }
       }
     });
 
-    // User presence events
+    // Eventi presenza utenti
     newSocket.on("user:joined", (message: Message) => {
-      console.log(`User joined: from chatroom.tsx`, message);
-      const isBroadcast = message.isBroadcast;
+      console.log("User joined:", message);
 
-      if (message.roomId === roomId) {
-        const isDuplicate = messages.some(
-          m => m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.type === MessageType.USER_JOINED
-        );
-
-        if (!isDuplicate || !isBroadcast) {
-          if (!isBroadcast && isDuplicate) {
-            setMessages(prev => prev.map(m =>
-              (m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.type === MessageType.USER_JOINED) ? message : m
-            ));
-          } else if (!isDuplicate) {
-            setMessages((prev) => [...prev, message]);
-          }
-        }
-      }
+      processMessage(
+          message,
+          // Controllo duplicati per user joined
+          (m, currentMessages) => currentMessages.some(
+              existingMsg => existingMsg.timestamp === m.timestamp &&
+                  existingMsg.nickname === m.nickname &&
+                  existingMsg.type === MessageType.USER_JOINED
+          ),
+          // Condizione di unicità per user joined
+          existingMsg => existingMsg.timestamp === message.timestamp &&
+              existingMsg.nickname === message.nickname &&
+              existingMsg.type === MessageType.USER_JOINED
+      );
     });
 
     newSocket.on("user:left", (message: Message) => {
-      console.log(`User left: from chatroom.tsx`, message);
-      const isBroadcast = message.isBroadcast;
+      console.log("User left:", message);
 
-      if (message.roomId === roomId) {
-        const isDuplicate = messages.some(
-          m => m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.type === MessageType.USER_LEFT
-        );
-
-        if (!isDuplicate || !isBroadcast) {
-          if (!isBroadcast && isDuplicate) {
-            setMessages(prev => prev.map(m =>
-              (m.timestamp === message.timestamp &&
-               m.nickname === message.nickname &&
-               m.type === MessageType.USER_LEFT) ? message : m
-            ));
-          } else if (!isDuplicate) {
-            setMessages((prev) => [...prev, message]);
-          }
-        }
-      }
+      processMessage(
+          message,
+          // Controllo duplicati per user left
+          (m, currentMessages) => currentMessages.some(
+              existingMsg => existingMsg.timestamp === m.timestamp &&
+                  existingMsg.nickname === m.nickname &&
+                  existingMsg.type === MessageType.USER_LEFT
+          ),
+          // Condizione di unicità per user left
+          existingMsg => existingMsg.timestamp === message.timestamp &&
+              existingMsg.nickname === message.nickname &&
+              existingMsg.type === MessageType.USER_LEFT
+      );
     });
 
-    // Error events
+    // Eventi di errore
     newSocket.on("error:nickname", (data: { message: string }) => {
-      console.error(`Nickname error: from chatroom.tsx`, data);
+      console.error("Nickname error:", data);
       setNicknameError(data.message);
       setShowNicknameModal(true);
-
       toast({
         title: "Nickname Error",
         description: data.message,
@@ -207,7 +232,7 @@ const ChatRoom = () => {
     });
 
     newSocket.on("error:message", (data: { message: string }) => {
-      console.error(`Message error: from chatroom.tsx`, data);
+      console.error("Message error:", data);
       toast({
         title: "Message Error",
         description: data.message,
@@ -215,15 +240,17 @@ const ChatRoom = () => {
       });
     });
 
-    // Save socket to state
     setSocket(newSocket);
 
-    // Clean up on unmount
     return () => {
-      console.log("Cleaning up socket listeners from chatroom.tsx");
+      console.log("Cleaning up socket listeners");
+      // Invia un evento di uscita se necessario
+      if (newSocket.connected && nicknameRef.current) {
+        newSocket.emit("user:leave", { roomId, nickname: nicknameRef.current });
+      }
       newSocket.disconnect();
     };
-  }, [messages, nickname, roomId, toast]);
+  }, [roomId, toast, processMessage, isMessageForThisRoom]);
 
   // Handle joining a room with a nickname
   const handleSetNickname = (name: string) => {
@@ -296,59 +323,59 @@ const ChatRoom = () => {
 
   // Render the UI
   return (
-    <div>
-            {showNicknameModal ? (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Welcome to the Chat</h2>
-            <p className="text-gray-600 mb-4">Please enter a nickname to start chatting in room: <span className="font-semibold">{roomId}</span></p>
+      <div>
+        {showNicknameModal ? (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-11/12 max-w-md mx-auto">
+                <h2 className="text-xl font-semibold text-gray-800 mb-4">Welcome to the Chat</h2>
+                <p className="text-gray-600 mb-4">Please enter a nickname to start chatting in room: <span className="font-semibold">{roomId}</span></p>
 
-            {nicknameError && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
-                {nicknameError}
-              </div>
-            )}
+                {nicknameError && (
+                    <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+                      {nicknameError}
+                    </div>
+                )}
 
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const input = e.currentTarget.querySelector('input') as HTMLInputElement;
-              const value = input?.value;
-              if (value) handleSetNickname(value);
-            }}>
-              <div className="mb-4">
-                <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
-                <input
-                  type="text"
-                  id="nickname"
-                  className={`w-full rounded-lg border ${nicknameError ? 'border-red-300' : 'border-gray-300'} py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
-                  placeholder="Enter your nickname"
-                  required
-                />
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  const input = e.currentTarget.querySelector('input') as HTMLInputElement;
+                  const value = input?.value;
+                  if (value) handleSetNickname(value);
+                }}>
+                  <div className="mb-4">
+                    <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
+                    <input
+                        type="text"
+                        id="nickname"
+                        className={`w-full rounded-lg border ${nicknameError ? 'border-red-300' : 'border-gray-300'} py-2 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent`}
+                        placeholder="Enter your nickname"
+                        required
+                    />
+                  </div>
+                  <button
+                      type="submit"
+                      className="w-full bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      disabled={!socket || !isConnected}
+                  >
+                    {socket && isConnected ? "Join Chat" : "Connecting..."}
+                  </button>
+                </form>
               </div>
-              <button
-                type="submit"
-                className="w-full bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-                disabled={!socket || !isConnected}
-              >
-                {socket && isConnected ? "Join Chat" : "Connecting..."}
-              </button>
-            </form>
-          </div>
-        </div>
-      ) : (
-        <ChatApp
-          isConnected={isConnected}
-          nickname={nickname}
-          messages={messages}
-          onlineCount={onlineCount}
-          roomInfo={roomInfo}
-          showNicknameModal={false}
-          nicknameError={nicknameError}
-          onSetNickname={handleSetNickname}
-          onSendMessage={handleSendMessage}
-        />
-      )}
-    </div>
+            </div>
+        ) : (
+            <ChatApp
+                isConnected={isConnected}
+                nickname={nickname}
+                messages={messages}
+                onlineCount={onlineCount}
+                roomInfo={roomInfo}
+                showNicknameModal={false}
+                nicknameError={nicknameError}
+                onSetNickname={handleSetNickname}
+                onSendMessage={handleSendMessage}
+            />
+        )}
+      </div>
   );
 };
 

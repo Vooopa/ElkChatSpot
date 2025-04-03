@@ -1,8 +1,17 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors"; // Importa CORS
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Configura CORS prima di altri middleware
+app.use(cors({
+  origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
